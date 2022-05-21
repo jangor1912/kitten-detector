@@ -19,11 +19,11 @@ static void decodebin_child_added(GstChildProxy *child_proxy, GObject *object,
 
 /* PUBLIC FUNCTIONS */
 
-GstElement *create_source_bin(guint index, gchar *uri) {
+GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri) {
     GstElement *bin = NULL, *uri_decode_bin = NULL;
     gchar bin_name[16] = {};
 
-    g_snprintf(bin_name, 15, "source-bin-%02d", index);
+    g_snprintf(bin_name, 15, "source-bin-%02d", source_number);
     /* Create a source GstBin to abstract this bin's content from the rest of the pipeline */
     bin = gst_bin_new(bin_name);
 
@@ -38,7 +38,7 @@ GstElement *create_source_bin(guint index, gchar *uri) {
     }
 
     /* We set the input uri to the source element */
-    g_object_set(G_OBJECT(uri_decode_bin), "uri", uri, NULL);
+    g_object_set(G_OBJECT(uri_decode_bin), "uri", source_uri, NULL);
 
     /* Connect to the "pad-added" signal of the decodebin which generates a
      * callback once a new pad for raw data has beed created by the decodebin */

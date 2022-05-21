@@ -5,71 +5,70 @@
 #include <glib.h>
 
 #include "../include/pipeline.h"
+#include "utils/utils.h"
+#include "sources/sources.h"
+#include "inference/inference.h"
+#include "handlers/handlers.h"
 
-#define CHAR_ARRAY_LENGTH 16
-
-gint run_pipeline(gchar **source_uris, gint source_uris_number) {
+guint run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
     GMainLoop *loop = NULL;
     GstElement *pipeline = NULL;
     GstElement *streammux = NULL;
     GstElement *sink = NULL;
 
     /* Standard GStreamer initialization */
-    gst_init();
+    gst_init(NULL, NULL);
     loop = g_main_loop_new(NULL, FALSE);
 
     /* Create gstreamer elements */
     /* Create Pipeline element that will form a connection of other elements */
     pipeline = gst_pipeline_new("kitten-detector-pipeline");
 
-    /* Create nvstreammux instance to form batches from one or more sources. */
-    streammux = gst_element_factory_make("nvstreammux", "stream-muxer");
-
-    if (!pipeline || !streammux) {
-        g_printerr("One element could not be created. Exiting.\n");
-        return -1;
+    if (!pipeline) {
+        g_printerr("Pipeline could not be created. Exiting.\n");
+        return FAIL;
     }
-    gst_bin_add(GST_BIN(pipeline), streammux);
 
-    for (guint i = 0; i < source_uris_number; i++) {
-        GstPad *sinkpad, *srcpad;
-        gchar pad_name[CHAR_ARRAY_LENGTH] = {};
-        gsnprintf(pad_name, CHAR_ARRAY_LENGTH-1, "sink-bin-%02d");
-        GstElement *source_bin = create_source_bin(i, );
+    /* we add a message handler */
+    GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
+    guint bus_watch_id = gst_bus_add_watch (bus, bus_call, loop);
+    gst_object_unref (bus);
 
+    guint sources_number = sources_config->sources_number;
+    GstElement *inference_bin = create_primary_inference_bin(streammux_config, sources_number);
+    if(!inference_bin){
+        g_printerr("Inference bin cannot be created. Exiting!\n");
+        return FAIL;
+    }
+    gst_bin_add(GST_BIN(pipeline), inference_bin);
+
+    gchar sink_pad_name[PAD_NAME_LENGTH];
+    for (guint i = 0; i < sources_number; i++) {
+        /* Create source bin */
+        gchar* source_uri = sources_config->source_uris[i];
+        GstElement *source_bin = create_uridecode_source_bin(i, source_uri);
         if (!source_bin) {
-            g_printerr("Failed to create source bin. Exiting.\n");
-            return -1;
+            g_printerr("Failed to create source bin %d with source uri %s. Exiting.\n", i, source_uri);
+            return FAIL;
         }
-
         gst_bin_add(GST_BIN(pipeline), source_bin);
 
-        g_snprintf(pad_name, 15, "sink_%u", i);
-        sinkpad = gst_element_get_request_pad(streammux, pad_name);
-        if (!sinkpad) {
-            g_printerr("Streammux request sink pad failed. Exiting.\n");
-            return -1;
+        /* Connect source-bin to inference-bin */
+        g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);
+        gint status = connect_two_elements(
+            source_bin, inference_bin,
+            sink_pad_name, "src"
+        );
+        if(status != OK){
+            g_printerr("Cannot connect source-bin-%d (%s) to inference-bin. Exiting!\n", i, source_uri);
+            return FAIL;
         }
-
-        srcpad = gst_element_get_static_pad(source_bin, "src");
-        if (!srcpad) {
-            g_printerr("Failed to get src pad of source bin. Exiting.\n");
-            return -1;
-        }
-
-        if (gst_pad_link(srcpad, sinkpad) != GST_PAD_LINK_OK) {
-            g_printerr("Failed to link source bin to stream muxer. Exiting.\n");
-            return -1;
-        }
-
-        gst_object_unref(srcpad);
-        gst_object_unref(sinkpad);
     }
 
     /* Set the pipeline to "playing" state */
     g_print("Now playing:");
-    for (i = 0; i < num_sources; i++) {
-        g_print(" %s,", argv[i + 1]);
+    for (gint i = 0; i < sources_number; i++) {
+        g_print(" %s,", sources_config->source_uris[i]);
     }
     g_print("\n");
     gst_element_set_state(pipeline, GST_STATE_PLAYING);

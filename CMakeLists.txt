@@ -30,7 +30,11 @@ include_directories(
 
 add_library(kitten-detector SHARED
         src/pipeline.c
-        )
+        src/sources/sources.c src/sources/sources.h
+        src/sinks/sinks.c src/sinks/sinks.h
+        src/handlers/handlers.c src/handlers/handlers.h
+        src/utils/utils.c src/utils/utils.h
+        src/inference/inference.c src/inference/inference.h)
 
 set_target_properties(kitten-detector PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(kitten-detector PROPERTIES SOVERSION 1)

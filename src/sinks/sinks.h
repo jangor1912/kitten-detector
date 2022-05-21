@@ -8,6 +8,6 @@
 #include <gst/gst.h>
 #include <glib.h>
 
-GstElement *create_sink_bin(gint sink_bin_number);
+GstElement *create_tilled_display_sink_bin(gint sink_bin_number, gint sinks_number);
 
 #endif //KITTEN_DETECTOR_SINKS_H

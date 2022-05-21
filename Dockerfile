@@ -15,6 +15,10 @@ FROM nvcr.io/nvidia/deepstream:6.0.1-devel
 # ssh credentials (test user):
 #   user@password
 
+# Key rotation - https://forums.developer.nvidia.com/t/gpg-error-http-developer-download-nvidia-com-compute-cuda-repos-ubuntu1804-x86-64/212904/3
+RUN apt-key del 7fa2af80
+RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/3bf863cc.pub
+
 RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get -y install tzdata
 
 RUN apt-get update \

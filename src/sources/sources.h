@@ -8,6 +8,12 @@
 #include <gst/gst.h>
 #include <glib.h>
 
-GstElement *create_source_bin(gint source_number, gchar *source_uri);
+typedef struct {
+    guint sources_number;
+    gchar **source_uris;
+
+} SourcesConfig;
+
+GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri);
 
 #endif //KITTEN_DETECTOR_SOURCES_H

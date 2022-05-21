@@ -3,9 +3,10 @@
 //
 #include <gst/gst.h>
 #include <glib.h>
-#include "sinks.h"
+#include <math.h>
 
-#define ELEMENT_NAME_LENGTH 16
+#include "sinks.h"
+#include "utils/utils.h"
 
 #define TILED_OUTPUT_WIDTH 1280
 #define TILED_OUTPUT_HEIGHT 720
@@ -14,15 +15,16 @@
  * 1: GPU mode (for Tesla only)
  * 2: HW mode (For Jetson only)
  */
-#define OSD_PROCESS_MODE 0
+#define OSD_PROCESS_MODE 1
 
 /* By default, OSD will not display text. To display text, change this to 1 */
 #define OSD_DISPLAY_TEXT 0
 
-
-GstElement *create_sink_bin(gchar *sink_bin_name) {
+GstElement *create_tilled_display_sink_bin(gint sink_bin_number, gint sinks_number) {
     GstElement *bin = NULL;
     /* Create a sink GstBin to abstract this bin's content from the rest of the pipeline */
+    gchar sink_bin_name[BIN_NAME_LENGTH];
+    g_snprintf(sink_bin_name, BIN_NAME_LENGTH, "sink-bin-%d", sink_bin_number);
     bin = gst_bin_new(sink_bin_name);
 
     /* Use nvtiler to composite the batched frames into a 2D tiled array based on the source of the frames. */
@@ -50,8 +52,8 @@ GstElement *create_sink_bin(gchar *sink_bin_name) {
     }
 
     /* Configure added elements */
-    guint tiler_rows = (guint) sqrt(num_sources);
-    guint tiler_columns = (guint) ceil(1.0 * num_sources / tiler_rows);
+    guint tiler_rows = (guint) sqrt(sinks_number);
+    guint tiler_columns = (guint) ceil(1.0 * sinks_number / tiler_rows);
     /* we set the tiler properties here */
     g_object_set(G_OBJECT(tiler),
                  "rows", tiler_rows,
@@ -86,4 +88,8 @@ GstElement *create_sink_bin(gchar *sink_bin_name) {
         g_printerr("Elements could not be linked. Exiting.\n");
         return NULL;
     }
+
+    add_ghost_sink_pad_to_bin(bin, before_tiler_queue, "sink");
+
+    return bin;
 }

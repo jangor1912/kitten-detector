@@ -5,6 +5,9 @@
 #ifndef KITTEN_DETECTOR_PIPELINE_H
 #define KITTEN_DETECTOR_PIPELINE_H
 
-gint run_pipeline(gchar **source_uris, gint source_uris_number);
+#include "sources/sources.h"
+#include "inference/inference.h"
+
+guint run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config);
 
 #endif //KITTEN_DETECTOR_PIPELINE_H
