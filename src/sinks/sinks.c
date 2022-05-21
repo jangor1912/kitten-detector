@@ -1,7 +1,8 @@
 //
 // Created by jan on 15.04.22.
 //
-
+#include <gst/gst.h>
+#include <glib.h>
 #include "sinks.h"
 
 #define ELEMENT_NAME_LENGTH 16

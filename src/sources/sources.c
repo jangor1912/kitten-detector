@@ -2,6 +2,8 @@
 // Created by jan on 15.04.22.
 //
 // Stolen from deepstream-sample-apps/deepstream-nvof-test/deepstream_nvof_test.c
+#include <gst/gst.h>
+#include <glib.h>
 
 #include "sources.h"
 

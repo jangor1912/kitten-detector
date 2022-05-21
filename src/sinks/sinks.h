@@ -5,6 +5,9 @@
 #ifndef KITTEN_DETECTOR_SINKS_H
 #define KITTEN_DETECTOR_SINKS_H
 
+#include <gst/gst.h>
+#include <glib.h>
+
 GstElement *create_sink_bin(gint sink_bin_number);
 
 #endif //KITTEN_DETECTOR_SINKS_H
