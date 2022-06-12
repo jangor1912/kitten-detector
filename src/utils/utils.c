@@ -16,12 +16,13 @@ void write_pad_name(gchar *buffer, size_t buffer_size, gchar *pad_name, gchar *d
 
 void add_ghost_sink_pad_to_bin(GstElement *bin, GstElement *bin_first_element, gchar *sink_pad_name) {
     gchar final_sink_pad_name[PAD_NAME_LENGTH];
-    write_pad_name(sink_pad_name, PAD_NAME_LENGTH,
+    write_pad_name(final_sink_pad_name, PAD_NAME_LENGTH,
                    sink_pad_name, "sink");
     
     GstPad *pad = gst_element_get_static_pad(bin_first_element, final_sink_pad_name);
     if(!pad){
-        pad = gst_element_get_request_pad(bin_first_element, final_sink_pad_name);
+        g_printerr("Cannot retrieve static-pad (%s) from first-bin element!\n", final_sink_pad_name);
+        return;
     }
     GstPad *ghost_pad = gst_ghost_pad_new(final_sink_pad_name, pad);
     gst_pad_set_active(ghost_pad, TRUE);
@@ -36,7 +37,8 @@ void add_ghost_src_pad_to_bin(GstElement *bin, GstElement *bin_last_element, gch
     
     GstPad *pad = gst_element_get_static_pad(bin_last_element, final_src_pad_name);
     if(!pad){
-        pad = gst_element_get_request_pad(bin_last_element, final_src_pad_name);
+        g_printerr("Cannot retrieve static-pad (%s) from last-bin element!\n", final_src_pad_name);
+        return;
     }
     GstPad *ghost_pad = gst_ghost_pad_new(final_src_pad_name, pad);
     gst_pad_set_active(ghost_pad, TRUE);

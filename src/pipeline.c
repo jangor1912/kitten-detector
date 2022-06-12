@@ -9,13 +9,13 @@
 #include "sources/sources.h"
 #include "sinks/sinks.h"
 #include "inference/inference.h"
+#include "muxer/muxer.h"
 #include "handlers/handlers.h"
 
 int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
     GMainLoop *loop = NULL;
     GstElement *pipeline = NULL;
-    GstElement *streammux = NULL;
-    GstElement *sink = NULL;
+    gint status = OK;
 
     /* Standard GStreamer initialization */
     gst_init(NULL, NULL);
@@ -29,19 +29,30 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         g_printerr("Pipeline could not be created. Exiting.\n");
         return FAIL;
     }
+    g_print("Successfully created the pipeline place-holder!\n");
 
     /* we add a message handler */
     GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
     guint bus_watch_id = gst_bus_add_watch (bus, bus_call, loop);
     gst_object_unref (bus);
+    g_print("Successfully added bus-watch!\n");
 
     guint sources_number = sources_config->sources_number;
+    GstElement *stream_muxer = create_stream_muxer(streammux_config, sources_number);
+    if(!stream_muxer){
+        g_printerr("Stream-muxer cannot be created. Exiting!\n");
+        return FAIL;
+    }
+    gst_bin_add(GST_BIN(pipeline), stream_muxer);
+    g_print("Successfully created stream-muxer!\n");
+
     GstElement *inference_bin = create_primary_inference_bin(streammux_config, sources_number);
     if(!inference_bin){
         g_printerr("Inference bin cannot be created. Exiting!\n");
         return FAIL;
     }
     gst_bin_add(GST_BIN(pipeline), inference_bin);
+    g_print("Successfully created inference-bin!\n");
 
     gchar sink_pad_name[PAD_NAME_LENGTH];
     for (guint i = 0; i < sources_number; i++) {
@@ -53,18 +64,28 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
             return FAIL;
         }
         gst_bin_add(GST_BIN(pipeline), source_bin);
+        g_print("Successfully created source-bin (%s)!\n", source_uri);
 
-        /* Connect source-bin to inference-bin */
+        /* Connect source-bin to stream-muxer */
         g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);
-        gint status = connect_two_elements(
-            source_bin, inference_bin,
+        status = connect_two_elements(
+            source_bin, stream_muxer,
             sink_pad_name, "src"
         );
         if(status != OK){
-            g_printerr("Cannot connect source-bin-%d (%s) to inference-bin. Exiting!\n", i, source_uri);
+            g_printerr("Cannot connect source-bin-%d (%s) to stream-muxer. Exiting!\n", i, source_uri);
             return FAIL;
         }
+        g_print("Successfully connected source-bin (%s) to stream-muxer!\n", source_uri);
     }
+
+    /* Connect stream-muxer to inference bin */
+    status = connect_two_elements(stream_muxer, inference_bin, "sink", "src");
+    if(status != OK){
+        g_printerr("Cannot connect stream-muxer to inference-bin. Exiting!\n");
+        return FAIL;
+    }
+    g_print("Successfully connected stream-muxer to inference-bin!\n");
 
     /* Connect inference bin to tiled-display-bin */
     GstElement *sink_bin = create_tilled_display_sink_bin(0, sources_number);
@@ -73,14 +94,17 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         return FAIL;
     }
     gst_bin_add(GST_BIN(pipeline), sink_bin);
+    g_print("Successfully created sink-bin!\n");
+
     /* Connect sink-bin to inference-bin */
-    gint status = connect_two_elements(
+    status = connect_two_elements(
             inference_bin, sink_bin, "sink", "src"
     );
     if(status != OK){
         g_printerr("Cannot connect inference-bin with sink-bin. Exiting!\n");
         return FAIL;
     }
+    g_print("Successfully connected inference-bin with sink-bin!\n");
 
     /* Set the pipeline to "playing" state */
     g_print("Now playing:");

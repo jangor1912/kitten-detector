@@ -34,7 +34,7 @@ add_library(kitten-detector SHARED
         src/sinks/sinks.c src/sinks/sinks.h
         src/handlers/handlers.c src/handlers/handlers.h
         src/utils/utils.c src/utils/utils.h
-        src/inference/inference.c src/inference/inference.h)
+        src/inference/inference.c src/inference/inference.h src/muxer/muxer.c src/muxer/muxer.h)
 
 set_target_properties(kitten-detector PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(kitten-detector PROPERTIES SOVERSION 1)

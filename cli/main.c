@@ -20,16 +20,21 @@
  * */
 int main(int argc, char *argv[])
 {
-    if(argc < 4){
+    if(argc < 5){
         printf("Expecting at least 4 arguments: "
                "<inference-width> <inference-height> <max-batch-size> <source-uri>\n");
         return 1;
     }
 
-    int width = atoi(argv[0]);
-    int height = atoi(argv[1]);
-    int max_batch_size = atoi(argv[2]);
-    int sources_number = argc - 3;
+    printf("Got %d arguments:\n", argc);
+    for(int i=0; i<argc; i++){
+        printf("\tArgument %d = %s\n", i, argv[i]);
+    }
+
+    int width = atoi(argv[1]);
+    int height = atoi(argv[2]);
+    int max_batch_size = atoi(argv[3]);
+    int sources_number = argc - 4;
 
     char **source_uris = (char **) malloc(sizeof(char *) * sources_number);
     int current_source_number = 0;
