@@ -5,6 +5,7 @@
 #include <gst/gst.h>
 #include <glib.h>
 
+#include "pipeline.h"
 #include "inference.h"
 #include "utils/utils.h"
 

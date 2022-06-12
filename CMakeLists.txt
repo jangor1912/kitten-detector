@@ -55,7 +55,6 @@ target_link_libraries(${PROJECT_NAME}
         ${CUDA_LIBRARIES}
         ${CMAKE_DL_LIBS}
         ${X11_LIBRARIES}
-        m
         )
 
 install(TARGETS kitten-detector

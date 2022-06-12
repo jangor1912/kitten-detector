@@ -5,9 +5,17 @@
 #ifndef KITTEN_DETECTOR_PIPELINE_H
 #define KITTEN_DETECTOR_PIPELINE_H
 
-#include "sources/sources.h"
-#include "inference/inference.h"
+typedef struct {
+    int sources_number;
+    char **source_uris;
+} SourcesConfig;
 
-guint run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config);
+typedef struct {
+    int width;
+    int height;
+    int max_batch_size;
+} StreamMuxerConfig;
+
+int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config);
 
 #endif //KITTEN_DETECTOR_PIPELINE_H

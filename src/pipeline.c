@@ -7,10 +7,11 @@
 #include "../include/pipeline.h"
 #include "utils/utils.h"
 #include "sources/sources.h"
+#include "sinks/sinks.h"
 #include "inference/inference.h"
 #include "handlers/handlers.h"
 
-guint run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
+int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
     GMainLoop *loop = NULL;
     GstElement *pipeline = NULL;
     GstElement *streammux = NULL;
@@ -63,6 +64,22 @@ guint run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_c
             g_printerr("Cannot connect source-bin-%d (%s) to inference-bin. Exiting!\n", i, source_uri);
             return FAIL;
         }
+    }
+
+    /* Connect inference bin to tiled-display-bin */
+    GstElement *sink_bin = create_tilled_display_sink_bin(0, sources_number);
+    if (!sink_bin) {
+        g_printerr("Failed to create sink bin with tiled display. Exiting!\n");
+        return FAIL;
+    }
+    gst_bin_add(GST_BIN(pipeline), sink_bin);
+    /* Connect sink-bin to inference-bin */
+    gint status = connect_two_elements(
+            inference_bin, sink_bin, "sink", "src"
+    );
+    if(status != OK){
+        g_printerr("Cannot connect inference-bin with sink-bin. Exiting!\n");
+        return FAIL;
     }
 
     /* Set the pipeline to "playing" state */

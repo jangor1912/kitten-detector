@@ -21,3 +21,11 @@ docker run \
   --name kitten-detector \
   clion/remote-c-env:0.5
 ```
+
+## Installing library
+```bash
+mkdir build
+cd build
+cmake ..
+make install
+```
