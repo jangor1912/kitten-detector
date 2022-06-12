@@ -53,4 +53,16 @@ RUN useradd -m user \
 
 RUN usermod -s /bin/bash user
 
+COPY . /project
+
+WORKDIR /project
+
+RUN mkdir -p /models/configs/infer-engine &&  \
+    cp /project/configs/infer-engine/pgie_config.txt /models/configs/infer-engine
+
+RUN mkdir /project/build && \
+    cd /project/build && \
+    cmake .. && \
+    make install
+
 CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]
