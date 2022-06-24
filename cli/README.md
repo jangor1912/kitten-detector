@@ -7,5 +7,5 @@ gcc -Wall -L/usr/local/lib -Wl,-rpath=/usr/local/lib -o pipeline_cli main.c -lki
 
 ## Running
 ```bash
-./pipeline_cli 1024 1024 1 file:///data/20200820_191031.mp4
+./pipeline_cli 1920 1080 1 rtsp://192.168.0.115:8080/h264_pcm.sdp
 ```

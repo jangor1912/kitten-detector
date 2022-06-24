@@ -57,8 +57,10 @@ COPY . /project
 
 WORKDIR /project
 
-RUN mkdir -p /models/configs/infer-engine &&  \
-    cp /project/configs/infer-engine/pgie_config.txt /models/configs/infer-engine
+RUN mkdir -p /models/configs/infer-engine && \
+    mkdir -p /models/configs/tracker && \
+    cp /project/configs/infer-engine/pgie_config.txt /models/configs/infer-engine && \
+    cp /project/configs/tracker/config_tracker_NvDCF_accuracy.yml /models/configs/tracker
 
 RUN mkdir /project/build && \
     cd /project/build && \

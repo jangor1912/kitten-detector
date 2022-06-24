@@ -12,6 +12,8 @@
 
 /* nv-infer-server configuration options */
 #define INFERSERVER_PGIE_CONFIG_FILE  "/models/configs/infer-engine/pgie_config.txt"
+#define TRACKER_LIBRARY_PATH "/opt/nvidia/deepstream/deepstream-6.0/lib/libnvds_nvmultiobjecttracker.so"
+#define TRACKER_CONFIG_FILE "/models/configs/tracker/config_tracker_NvDCF_accuracy.yml"
 
 GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint sources_number);
 
