@@ -55,6 +55,8 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
     g_print("Successfully created inference-bin!\n");
 
     gchar sink_pad_name[PAD_NAME_LENGTH];
+    gchar tee_src_pad_name[PAD_NAME_LENGTH];
+    gchar tee_element_name[ELEMENT_NAME_LENGTH];
     for (guint i = 0; i < sources_number; i++) {
         /* Create source bin */
         gchar* source_uri = sources_config->source_uris[i];
@@ -66,11 +68,48 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         gst_bin_add(GST_BIN(pipeline), source_bin);
         g_print("Successfully created source-bin (%s)!\n", source_uri);
 
-        /* Connect source-bin to stream-muxer */
+        /* Create file-sink-bin */
+        GstElement *file_sink_bin = create_file_sink_bin(i);
+        if(!file_sink_bin){
+            g_printerr("Failed to create file-sink-bin %d. Exiting!\n", i);
+            return FAIL;
+        }
+        gst_bin_add(GST_BIN(pipeline), file_sink_bin);
+        g_print("Successfully added file-sink-bin %d!\n", i);
+
+        /* Use TEE element to split stream of frames into two:
+         * 1. Frames that are sent to file-sink-bin - for saving high-resolution video files
+         * 2. Frames that are sent to stream-muxer - downscaled and passed to inference-engine
+         * */
+
+        g_snprintf(tee_element_name, ELEMENT_NAME_LENGTH, "tee_%d", i);
+        GstElement *tee = gst_element_factory_make("tee", tee_element_name);
+        if(!tee){
+            g_print("Tee element for source %d (%s) could not be created. Exiting!\n", i, source_uri);
+            return FAIL;
+        }
+        gst_bin_add(GST_BIN(pipeline), tee);
+        g_print("Successfully added tee element (%s) for source '%s' to pipeline!\n", tee_element_name, source_uri);
+
+        /* Connect tee element to source-bin */
+        status += connect_two_elements(
+                source_bin, tee,
+                "sink", "src"
+        );
+
+        /* Connect tee element to file-sink-bin */
+        g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 0);
+        status += connect_two_elements(
+                source_bin, tee,
+                "sink", tee_src_pad_name
+        );
+
+        /* Connect tee element to stream-muxer */
         g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);
-        status = connect_two_elements(
-            source_bin, stream_muxer,
-            sink_pad_name, "src"
+        g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 1);
+        status += connect_two_elements(
+            tee, stream_muxer,
+            sink_pad_name, tee_src_pad_name
         );
         if(status != OK){
             g_printerr("Cannot connect source-bin-%d (%s) to stream-muxer. Exiting!\n", i, source_uri);

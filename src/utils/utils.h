@@ -9,6 +9,7 @@
 #include <glib.h>
 
 #define BIN_NAME_LENGTH 128
+#define ELEMENT_NAME_LENGTH 128
 #define PAD_NAME_LENGTH 128
 #define OK 0
 #define FAIL 1

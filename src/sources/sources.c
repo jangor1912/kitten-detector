@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include "sources.h"
+#include "utils/utils.h"
 
 /* NVIDIA Decoder source pad memory feature. This feature signifies that source
  * pads having this capability will push GstBuffers containing cuda buffers. */
@@ -21,9 +22,9 @@ static void decodebin_child_added(GstChildProxy *child_proxy, GObject *object,
 
 GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri) {
     GstElement *bin = NULL, *uri_decode_bin = NULL;
-    gchar bin_name[16] = {};
+    gchar bin_name[BIN_NAME_LENGTH] = {};
 
-    g_snprintf(bin_name, 15, "source-bin-%02d", source_number);
+    g_snprintf(bin_name, BIN_NAME_LENGTH, "source-bin-%02d", source_number);
     /* Create a source GstBin to abstract this bin's content from the rest of the pipeline */
     bin = gst_bin_new(bin_name);
 
@@ -41,7 +42,7 @@ GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri) 
     g_object_set(G_OBJECT(uri_decode_bin), "uri", source_uri, NULL);
 
     /* Connect to the "pad-added" signal of the decodebin which generates a
-     * callback once a new pad for raw data has beed created by the decodebin */
+     * callback once a new pad for raw data has been created by the decodebin */
     g_signal_connect(G_OBJECT(uri_decode_bin), "pad-added",
                      G_CALLBACK(cb_newpad), bin);
     g_signal_connect(G_OBJECT(uri_decode_bin), "child-added",
@@ -51,7 +52,7 @@ GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri) 
 
     /* We need to create a ghost pad for the source bin which will act as a proxy
      * for the video decoder src pad. The ghost pad will not have a target right
-     * now. Once the decode bin creates the video decoder and generates the
+     * now. Once the decode-bin creates the video decoder and generates the
      * cb_newpad callback, we will set the ghost pad target to the video decoder
      * src pad. */
     if (!gst_element_add_pad(bin, gst_ghost_pad_new_no_target("src",
