@@ -4,6 +4,9 @@
 #include <gst/gst.h>
 #include <glib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "sinks.h"
 #include "utils/utils.h"
@@ -122,12 +125,27 @@ GstElement *create_file_sink_bin(guint sink_number){
                "%s/%s", output_directory, FILE_NAME_FORMAT);
 
     /* Create directory and delete all files in it */
-    // TODO
+    struct stat st = {0};
+    if (stat(output_directory, &st) == -1) {
+        mkdir(output_directory, 0777);
+    }
+    delete_all_files_in_directory(output_directory);
+
+//    g_object_set(G_OBJECT(file_sink),
+//                 "max-size-time", 60000000000,
+//                 "location", output_file_format,
+//                 "muxer-factory", "qtmux",
+//                 "async-finalize", TRUE,
+//                 NULL);
 
     g_object_set(G_OBJECT(file_sink),
                  "max-size-time", 60000000000,
                  "location", output_file_format,
                  NULL);
+    g_object_set(G_OBJECT(parser),
+                 "config-interval", 1,
+                 NULL);
+
 
     /* Add all elements to bin */
     gst_bin_add_many(GST_BIN(bin),

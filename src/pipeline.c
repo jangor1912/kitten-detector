@@ -77,6 +77,10 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         gst_bin_add(GST_BIN(pipeline), file_sink_bin);
         g_print("Successfully added file-sink-bin %d!\n", i);
 
+        g_print("Trying to solve lacking PTS timestamps issue.\n");
+        solve_lacking_pts_timestamps(GST_BIN(file_sink_bin));
+        g_print("Successfully solved lacking PTS timestamps issue.\n");
+
         /* Use TEE element to split stream of frames into two:
          * 1. Frames that are sent to file-sink-bin - for saving high-resolution video files
          * 2. Frames that are sent to stream-muxer - downscaled and passed to inference-engine
@@ -96,13 +100,25 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
                 source_bin, tee,
                 "sink", "src"
         );
+        if(status != OK){
+            g_printerr("Cannot connect source-bin (%s) to tee element (%s). Exiting!\n",
+                       source_uri, tee_element_name);
+            return FAIL;
+        }
+        g_print("Successfully connected source-bin (%s) to tee element (%s)!\n",
+                   source_uri, tee_element_name);
 
         /* Connect tee element to file-sink-bin */
         g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 0);
         status += connect_two_elements(
-                source_bin, tee,
+                tee, file_sink_bin,
                 "sink", tee_src_pad_name
         );
+        if(status != OK){
+            g_printerr("Cannot connect tee (%s) to file-sink-bin. Exiting!\n", source_uri);
+            return FAIL;
+        }
+        g_print("Successfully connected tee (%s) to file-sink-bin. Exiting!\n", source_uri);
 
         /* Connect tee element to stream-muxer */
         g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);

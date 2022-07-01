@@ -23,6 +23,7 @@
 #  gstreamer-pbutils:    GSTREAMER_PBUTILS_INCLUDE_DIRS and GSTREAMER_PBUTILS_LIBRARIES
 #  gstreamer-tag:        GSTREAMER_TAG_INCLUDE_DIRS and GSTREAMER_TAG_LIBRARIES
 #  gstreamer-video:      GSTREAMER_VIDEO_INCLUDE_DIRS and GSTREAMER_VIDEO_LIBRARIES
+#  gstreamer-base:       GSTREAMER_BASE_INCLUDE_DIRS and GSTREAMER_BASE_LIBRARIES
 #
 # Copyright (C) 2012 Raphael Kubo da Costa <rakuco@webkit.org>
 #
@@ -112,6 +113,7 @@ FIND_GSTREAMER_COMPONENT(GSTREAMER_PBUTILS gstreamer-pbutils-1.0 gst/pbutils/pbu
 FIND_GSTREAMER_COMPONENT(GSTREAMER_TAG gstreamer-tag-1.0 gst/tag/tag.h gsttag-1.0)
 FIND_GSTREAMER_COMPONENT(GSTREAMER_VIDEO gstreamer-video-1.0 gst/video/video.h gstvideo-1.0)
 FIND_GSTREAMER_COMPONENT(GSTREAMER_RTSPSERVER gstreamer-rtsp-1.0 gst/rtsp-server/rtsp-server.h gstrtspserver-1.0)
+FIND_GSTREAMER_COMPONENT(GSTREAMER_BASE gstreamer-rtsp-1.0 gst/base/gstbaseparse.h gstbaseparse-1.0)
 
 list(APPEND GSTREAMER_INCLUDE_DIRS ${GSTREAMER_CONFIG_INCLUDE_DIRS})
 list(APPEND GSTREAMER_LIBRARIES ${GSTREAMER_CONFIG_LIBRARIES})

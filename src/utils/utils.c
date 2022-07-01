@@ -3,6 +3,9 @@
 //
 #include <gst/gst.h>
 #include <glib.h>
+#include <gst/base/gstbaseparse.h>
+#include <stdio.h>
+#include <dirent.h>
 
 #include "utils.h"
 
@@ -85,4 +88,66 @@ gint connect_two_elements(
     gst_object_unref(second_element_sink_pad);
 
     return OK;
+}
+
+int delete_all_files_in_directory(char *directory_path){
+    // These are data types defined in the "dirent" header
+    DIR *theFolder = opendir(directory_path);
+    struct dirent *next_file;
+    char filepath[MAX_DIRECTORY_PATH_SIZE];
+
+    while ( (next_file = readdir(theFolder)) != NULL )
+    {
+        // build the path for each file in the folder
+        g_snprintf(filepath, MAX_DIRECTORY_PATH_SIZE,
+                   "%s/%s", directory_path, next_file->d_name);
+        remove(filepath);
+    }
+    closedir(theFolder);
+    return 0;
+}
+
+void solve_lacking_pts_timestamps(GstBin* bin){
+    // workaround no PTS issue
+    // https://gist.github.com/zougloub/0747f84d45bc35413c0c19584c398b3d
+    // https://stackoverflow.com/questions/42874691/gstreamer-for-android-buffer-has-no-pts
+    GstIterator *itr = NULL;
+    GValue item;
+    gpointer ptr;
+    gboolean done = FALSE;
+    GstElement *element = NULL;
+    gchar *element_name;
+    GstIteratorResult iterator_result;
+    g_print("Before extracting iterator!\n");
+    itr = gst_bin_iterate_elements(bin);
+    g_print("After extracting iterator!\n");
+
+    while(!done){
+        g_print("Before iterator next!\n");
+        iterator_result = gst_iterator_next (itr, &item);
+        g_print("After iterator next!\n");
+        switch (iterator_result) {
+            case GST_ITERATOR_OK:
+                g_print("In iterator GST_ITERATOR_OK!\n");
+                ptr = g_value_peek_pointer(&item);
+                g_print("In iterator after pointer extraction!\n");
+                element = GST_ELEMENT(ptr);
+                g_print("In iterator after element casting!\n");
+                element_name = gst_element_get_name(element);
+                g_print("In iterator after getting element name which is %s!\n", element_name);
+                if(strcmp(element_name, "parse")){
+                    g_print("In iterator Element is 'parse'!\n");
+                    gst_base_parse_set_infer_ts(GST_BASE_PARSE(element), TRUE);
+                    g_print("In iterator after gst_base_parse_set_infer_ts!\n");
+                    gst_base_parse_set_pts_interpolation(GST_BASE_PARSE(element), TRUE);
+                    g_print("In iterator after gst_base_parse_set_pts_interpolation!\n");
+                }
+                break;
+            default:
+                g_print("In iterator default!\n");
+                done = TRUE;
+                break;
+        }
+    }
+    gst_iterator_free (itr);
 }
