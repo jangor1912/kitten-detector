@@ -38,3 +38,40 @@ cmake ..
 make install
 cd ..
 ```
+
+## Checking if rtsp source works
+
+### With common rtsp-source
+```bash
+gst-launch-1.0 -e \
+  rtspsrc location="rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4" \
+  ! queue ! rtph264depay ! nvv4l2decoder ! nvvideoconvert ! 'video/x-raw(memory:NVMM),format=NV12' \
+  ! queue ! nvv4l2h264enc ! h264parse \
+  ! splitmuxsink location="/output/video-%02d.mp4" max-size-time=10000000000
+```
+
+### With smartphone rtsp-source
+```bash
+gst-launch-1.0 -e \
+  rtspsrc location="rtsp://192.168.0.115:1935/h264_pcm.sdp" \
+  ! queue ! rtph264depay ! nvv4l2decoder ! nvvideoconvert ! 'video/x-raw(memory:NVMM),format=NV12' \
+  ! queue ! nvv4l2h264enc ! h264parse \
+  ! splitmuxsink location="/output/video-%02d.mp4" max-size-time=10000000000
+```
+
+### Simple rtsp capture
+```bash
+gst-launch-1.0 -e \
+  rtspsrc location="rtsp://admin:adimn@192.168.0.115:1935" \
+  ! queue ! rtph264depay ! h264parse \
+  ! splitmuxsink location="/output/video-%02d.mp4" max-size-time=10000000000
+```
+
+### With uridecodebin
+```bash
+gst-launch-1.0 -e \
+  uridecodebin uri="rtsp://192.168.0.115:8080/h264_pcm.sdp" \
+  ! queue ! 'video/x-raw(memory:NVMM),format=NV12' \
+  ! queue ! nvv4l2h264enc ! h264parse \
+  ! splitmuxsink location="/output/video-%02d.mp4" max-size-time=10000000000
+```

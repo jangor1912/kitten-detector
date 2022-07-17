@@ -109,6 +109,7 @@ int delete_all_files_in_directory(char *directory_path){
 
 void solve_lacking_pts_timestamps(GstBin* bin){
     // workaround no PTS issue
+    // TODO does not work - iterator next results in Segmentation Fault
     // https://gist.github.com/zougloub/0747f84d45bc35413c0c19584c398b3d
     // https://stackoverflow.com/questions/42874691/gstreamer-for-android-buffer-has-no-pts
     GstIterator *itr = NULL;

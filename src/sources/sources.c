@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include "sources.h"
+#include "decoders.h"
 #include "utils/utils.h"
 
 /* NVIDIA Decoder source pad memory feature. This feature signifies that source
@@ -19,12 +20,23 @@ static void decodebin_child_added(GstChildProxy *child_proxy, GObject *object,
                                   gchar *name, gpointer user_data);
 
 /* PUBLIC FUNCTIONS */
+GstElement *create_source_bin(guint source_number, gchar *source_uri, gchar* codec_string){
+    enum VideoCodec codec = codec_from_string(codec_string);
+
+    if(codec == UNSUPPORTED) {
+        g_print("Codec is unsupported - falling back to uridecodebin - this may cause some issues!\n");
+        return create_uridecode_source_bin(source_number, source_uri);
+    } else {
+        g_printerr("Currently codec-specific source-bins are not supported!\n");
+        return NULL;
+    }
+}
 
 GstElement *create_uridecode_source_bin(guint source_number, gchar *source_uri) {
     GstElement *bin = NULL, *uri_decode_bin = NULL;
     gchar bin_name[BIN_NAME_LENGTH] = {};
 
-    g_snprintf(bin_name, BIN_NAME_LENGTH, "source-bin-%02d", source_number);
+    g_snprintf(bin_name, BIN_NAME_LENGTH, "uridecode-source-bin-%02d", source_number);
     /* Create a source GstBin to abstract this bin's content from the rest of the pipeline */
     bin = gst_bin_new(bin_name);
 

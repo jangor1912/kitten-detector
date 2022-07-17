@@ -60,7 +60,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
     for (guint i = 0; i < sources_number; i++) {
         /* Create source bin */
         gchar* source_uri = sources_config->source_uris[i];
-        GstElement *source_bin = create_uridecode_source_bin(i, source_uri);
+        GstElement *source_bin = create_source_bin(i, source_uri, NULL);
         if (!source_bin) {
             g_printerr("Failed to create source bin %d with source uri %s. Exiting.\n", i, source_uri);
             return FAIL;
@@ -76,10 +76,6 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         }
         gst_bin_add(GST_BIN(pipeline), file_sink_bin);
         g_print("Successfully added file-sink-bin %d!\n", i);
-
-        g_print("Trying to solve lacking PTS timestamps issue.\n");
-        solve_lacking_pts_timestamps(GST_BIN(file_sink_bin));
-        g_print("Successfully solved lacking PTS timestamps issue.\n");
 
         /* Use TEE element to split stream of frames into two:
          * 1. Frames that are sent to file-sink-bin - for saving high-resolution video files

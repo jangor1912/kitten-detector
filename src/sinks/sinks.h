@@ -9,7 +9,7 @@
 #include <glib.h>
 
 #define FILE_SINK_DIRECTORY "/output"
-#define FILE_NAME_FORMAT "video-%02d.avi"
+#define FILE_NAME_FORMAT "video-%02d.mp4"
 
 GstElement *create_tilled_display_sink_bin(guint sink_bin_number, guint sinks_number);
 GstElement *create_file_sink_bin(guint sink_number);

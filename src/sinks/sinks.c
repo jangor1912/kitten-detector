@@ -4,7 +4,6 @@
 #include <gst/gst.h>
 #include <glib.h>
 #include <math.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -131,17 +130,13 @@ GstElement *create_file_sink_bin(guint sink_number){
     }
     delete_all_files_in_directory(output_directory);
 
-//    g_object_set(G_OBJECT(file_sink),
-//                 "max-size-time", 60000000000,
-//                 "location", output_file_format,
-//                 "muxer-factory", "qtmux",
-//                 "async-finalize", TRUE,
-//                 NULL);
-
     g_object_set(G_OBJECT(file_sink),
                  "max-size-time", 60000000000,
                  "location", output_file_format,
+                 "muxer-factory", "qtmux",
+                 "async-finalize", TRUE,
                  NULL);
+
     g_object_set(G_OBJECT(parser),
                  "config-interval", 1,
                  NULL);
