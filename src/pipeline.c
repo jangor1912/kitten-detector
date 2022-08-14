@@ -5,6 +5,8 @@
 #include <glib.h>
 
 #include "../include/pipeline.h"
+#include "structures/structures.h"
+#include "probes/probes.h"
 #include "utils/utils.h"
 #include "sources/sources.h"
 #include "sinks/sinks.h"
@@ -14,44 +16,44 @@
 
 int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
     GMainLoop *loop = NULL;
-    GstElement *pipeline = NULL;
+    PipelineData *pipeline_data = allocate_pipeline_data(sources_config->sources_number);
     gint status = OK;
 
     /* Standard GStreamer initialization */
     gst_init(NULL, NULL);
     loop = g_main_loop_new(NULL, FALSE);
 
-    /* Create gstreamer elements */
-    /* Create Pipeline element that will form a connection of other elements */
-    pipeline = gst_pipeline_new("kitten-detector-pipeline");
+    /* Create gstreamer pipeline_data */
+    /* Create Pipeline element that will form a connection of other pipeline_data */
+    pipeline_data->pipeline = gst_pipeline_new("kitten-detector-pipeline");
 
-    if (!pipeline) {
+    if (!pipeline_data->pipeline) {
         g_printerr("Pipeline could not be created. Exiting.\n");
         return FAIL;
     }
     g_print("Successfully created the pipeline place-holder!\n");
 
     /* we add a message handler */
-    GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
+    GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline_data->pipeline));
     guint bus_watch_id = gst_bus_add_watch (bus, bus_call, loop);
     gst_object_unref (bus);
     g_print("Successfully added bus-watch!\n");
 
     guint sources_number = sources_config->sources_number;
-    GstElement *stream_muxer = create_stream_muxer(streammux_config, sources_number);
-    if(!stream_muxer){
+    pipeline_data->stream_muxer = create_stream_muxer(streammux_config, sources_number);
+    if(!pipeline_data->stream_muxer){
         g_printerr("Stream-muxer cannot be created. Exiting!\n");
         return FAIL;
     }
-    gst_bin_add(GST_BIN(pipeline), stream_muxer);
+    gst_bin_add(GST_BIN(pipeline_data->pipeline), pipeline_data->stream_muxer);
     g_print("Successfully created stream-muxer!\n");
 
-    GstElement *inference_bin = create_primary_inference_bin(streammux_config, sources_number);
-    if(!inference_bin){
+    pipeline_data->inference_bin = create_primary_inference_bin(streammux_config, sources_number);
+    if(!pipeline_data->inference_bin){
         g_printerr("Inference bin cannot be created. Exiting!\n");
         return FAIL;
     }
-    gst_bin_add(GST_BIN(pipeline), inference_bin);
+    gst_bin_add(GST_BIN(pipeline_data->pipeline), pipeline_data->inference_bin);
     g_print("Successfully created inference-bin!\n");
 
     gchar sink_pad_name[PAD_NAME_LENGTH];
@@ -59,22 +61,23 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
     gchar tee_element_name[ELEMENT_NAME_LENGTH];
     for (guint i = 0; i < sources_number; i++) {
         /* Create source bin */
+        SourceData *source_data = pipeline_data->sources[i];
         gchar* source_uri = sources_config->source_uris[i];
-        GstElement *source_bin = create_source_bin(i, source_uri, NULL);
-        if (!source_bin) {
+        source_data->source_bin = create_source_bin(i, source_uri, NULL);
+        if (!source_data->source_bin) {
             g_printerr("Failed to create source bin %d with source uri %s. Exiting.\n", i, source_uri);
             return FAIL;
         }
-        gst_bin_add(GST_BIN(pipeline), source_bin);
+        gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->source_bin);
         g_print("Successfully created source-bin (%s)!\n", source_uri);
 
         /* Create file-sink-bin */
-        GstElement *file_sink_bin = create_file_sink_bin(i);
-        if(!file_sink_bin){
+        source_data->file_sink_bin = create_file_sink_bin(i);
+        if(!source_data->file_sink_bin){
             g_printerr("Failed to create file-sink-bin %d. Exiting!\n", i);
             return FAIL;
         }
-        gst_bin_add(GST_BIN(pipeline), file_sink_bin);
+        gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->file_sink_bin);
         g_print("Successfully added file-sink-bin %d!\n", i);
 
         /* Use TEE element to split stream of frames into two:
@@ -83,17 +86,17 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
          * */
 
         g_snprintf(tee_element_name, ELEMENT_NAME_LENGTH, "tee_%d", i);
-        GstElement *tee = gst_element_factory_make("tee", tee_element_name);
-        if(!tee){
+        source_data->tee = gst_element_factory_make("tee", tee_element_name);
+        if(!source_data->tee){
             g_print("Tee element for source %d (%s) could not be created. Exiting!\n", i, source_uri);
             return FAIL;
         }
-        gst_bin_add(GST_BIN(pipeline), tee);
+        gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->tee);
         g_print("Successfully added tee element (%s) for source '%s' to pipeline!\n", tee_element_name, source_uri);
 
         /* Connect tee element to source-bin */
         status += connect_two_elements(
-                source_bin, tee,
+                source_data->source_bin, source_data->tee,
                 "sink", "src"
         );
         if(status != OK){
@@ -107,7 +110,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         /* Connect tee element to file-sink-bin */
         g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 0);
         status += connect_two_elements(
-                tee, file_sink_bin,
+                source_data->tee, source_data->file_sink_bin,
                 "sink", tee_src_pad_name
         );
         if(status != OK){
@@ -120,18 +123,31 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);
         g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 1);
         status += connect_two_elements(
-            tee, stream_muxer,
-            sink_pad_name, tee_src_pad_name
+                source_data->tee, pipeline_data->stream_muxer,
+                sink_pad_name, tee_src_pad_name
         );
         if(status != OK){
             g_printerr("Cannot connect source-bin-%d (%s) to stream-muxer. Exiting!\n", i, source_uri);
             return FAIL;
         }
         g_print("Successfully connected source-bin (%s) to stream-muxer!\n", source_uri);
+
+        /* Add common-meta-data attaching probe to the source-pad of source-bin */
+        GstPad *source_bin_src_pad = gst_element_get_static_pad(source_data->source_bin, "src");
+        if(!source_bin_src_pad){
+            g_printerr("Cannot get source pad of source bin number %d!\n", i);
+            return FAIL;
+        }
+        gst_pad_add_probe(
+                source_bin_src_pad, GST_PAD_PROBE_TYPE_BUFFER,
+                attach_common_meta_data_to_buffer_probe,
+                (gpointer)source_data, NULL);
+        gst_object_unref(source_bin_src_pad);
     }
 
     /* Connect stream-muxer to inference bin */
-    status = connect_two_elements(stream_muxer, inference_bin, "sink", "src");
+    status = connect_two_elements(pipeline_data->stream_muxer, pipeline_data->inference_bin,
+                                  "sink", "src");
     if(status != OK){
         g_printerr("Cannot connect stream-muxer to inference-bin. Exiting!\n");
         return FAIL;
@@ -139,17 +155,18 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
     g_print("Successfully connected stream-muxer to inference-bin!\n");
 
     /* Connect inference bin to tiled-display-bin */
-    GstElement *sink_bin = create_tilled_display_sink_bin(0, sources_number);
-    if (!sink_bin) {
+    pipeline_data->osd_sink_bin = create_tilled_display_sink_bin(0, sources_number);
+    if (!pipeline_data->osd_sink_bin) {
         g_printerr("Failed to create sink bin with tiled display. Exiting!\n");
         return FAIL;
     }
-    gst_bin_add(GST_BIN(pipeline), sink_bin);
+    gst_bin_add(GST_BIN(pipeline_data->pipeline), pipeline_data->osd_sink_bin);
     g_print("Successfully created sink-bin!\n");
 
     /* Connect sink-bin to inference-bin */
     status = connect_two_elements(
-            inference_bin, sink_bin, "sink", "src"
+            pipeline_data->inference_bin, pipeline_data->osd_sink_bin,
+            "sink", "src"
     );
     if(status != OK){
         g_printerr("Cannot connect inference-bin with sink-bin. Exiting!\n");
@@ -163,7 +180,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         g_print(" %s,", sources_config->source_uris[i]);
     }
     g_print("\n");
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    gst_element_set_state(pipeline_data->pipeline, GST_STATE_PLAYING);
 
     /* Wait till pipeline encounters an error or EOS */
     g_print("Running...\n");
@@ -171,10 +188,11 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
 
     /* Out of the main loop, clean up nicely */
     g_print("Returned, stopping playback\n");
-    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_element_set_state(pipeline_data->pipeline, GST_STATE_NULL);
     g_print("Deleting pipeline\n");
-    gst_object_unref(GST_OBJECT(pipeline));
+    gst_object_unref(GST_OBJECT(pipeline_data->pipeline));
     g_source_remove(bus_watch_id);
     g_main_loop_unref(loop);
+    deallocate_pipeline_elements(pipeline_data);
     return 0;
 }

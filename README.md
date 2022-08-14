@@ -12,10 +12,8 @@ To run the container user must invoke following command:
 
 ```bash
 docker run \
-  --runtime nvidia \
   -dit --rm \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  -v /home/jan/Projects/kitten-detector/output:/output \
+  -v /Users/jgorazda/MyProjects/kitten-detector/output:/output \
   -e DISPLAY=$DISPLAY \
   -w /opt/nvidia/deepstream/deepstream-6.0 \
   --cap-add sys_ptrace -p127.0.0.1:2222:22 \
