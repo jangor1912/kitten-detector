@@ -30,7 +30,7 @@ include_directories(
 )
 
 add_library(kitten-detector SHARED
-        src/pipeline.c
+        src/pipeline.c src/pipeline.h
         src/sources/sources.c src/sources/sources.h
         src/sinks/sinks.c src/sinks/sinks.h
         src/handlers/handlers.c src/handlers/handlers.h
@@ -44,14 +44,13 @@ add_library(kitten-detector SHARED
 
 set_target_properties(kitten-detector PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(kitten-detector PROPERTIES SOVERSION 1)
-set_target_properties(kitten-detector PROPERTIES PUBLIC_HEADER include/pipeline.h)
+set_target_properties(kitten-detector PROPERTIES PUBLIC_HEADER src/pipeline.h)
 
-target_include_directories(kitten-detector PRIVATE include)
 target_include_directories(kitten-detector PRIVATE src)
 
 include(GNUInstallDirs)
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(kitten-detector
         ${GSTREAMER_LIBRARIES}
         ${GSTREAMER_VIDEO_LIBRARIES}
         ${GSTREAMER_RTSPSERVER_LIBRARIES}
@@ -64,6 +63,27 @@ target_link_libraries(${PROJECT_NAME}
         ${X11_LIBRARIES}
         )
 
+#set(TARGET_LIB_DIR /usr/lib)
+#set(TARGET_HEADERS_DIR /usr/include)
+#
+#MESSAGE("Library will be installed in ${CMAKE_INSTALL_LIBDIR}. Public headers will be in ${CMAKE_INSTALL_INCLUDEDIR}")
+
+message("Setting RPATH to ${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 install(TARGETS kitten-detector
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+find_package(KittenDetector REQUIRED)
+
+include_directories(
+        ${KITTEN_DETECTOR_INCLUDE_DIR}
+        cli
+)
+
+add_executable(kitten-detector-cli cli/main.c)
+
+target_link_libraries(kitten-detector-cli PUBLIC
+        ${KITTEN_DETECTOR_LIB}
+)

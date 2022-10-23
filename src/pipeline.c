@@ -4,7 +4,7 @@
 #include <gst/gst.h>
 #include <glib.h>
 
-#include "../include/pipeline.h"
+#include "pipeline.h"
 #include "structures/structures.h"
 #include "probes/probes.h"
 #include "utils/utils.h"

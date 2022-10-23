@@ -15,6 +15,7 @@ SET(NVDS_LIBS
 foreach(LIB ${NVDS_LIBS})
   find_library(${LIB}_PATH NAMES ${LIB} PATHS ${NVDS_INSTALL_DIR}/lib)
   if(${LIB}_PATH)
+    message(INFO " Found Nvidia library: ${${LIB}_PATH}")
     set(NVDS_LIBRARIES ${NVDS_LIBRARIES} ${${LIB}_PATH})
   else()
     message(FATAL ERROR " Unable to find lib: ${LIB}")

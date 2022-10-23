@@ -3,8 +3,36 @@
 ## Compilation
 ```bash
 gcc \
-  -Wall -L/usr/local/lib \
+-Wall \
+-o pipeline_cli main.c \
+-L/usr/local/lib \
+-Wl,-rpath=/usr/local/lib \
+-lnvdsgst_meta -lnvds_meta \
+-L/opt/nvidia/deepstream/deepstream/lib/ \
+-Wl,-rpath=/opt/nvidia/deepstream/deepstream/lib/ \
+-lkitten-detector \
+-Wl,--as-needed
+```
+
+```bash
+gcc \
+  -Wall \
+  -o pipeline_cli main.c \
+  -L/opt/nvidia/deepstream/deepstream/lib/ \
+  -Wl,-rpath=/opt/nvidia/deepstream/deepstream/lib/ \
+  -lnvdsgst_meta -lnvds_meta \
+  -L/usr/local/lib \
   -Wl,-rpath=/usr/local/lib \
+  -lkitten-detector
+```
+
+```bash
+gcc \
+  -Wall \
+  -L/usr/local/lib \
+  -Wl,-rpath=/usr/local/lib \
+  -L/opt/nvidia/deepstream/deepstream-6.0/lib/ \
+  -Wl,-rpath=/opt/nvidia/deepstream/deepstream-6.0/lib/ \
   -o pipeline_cli main.c -lkitten-detector 
 ```
 
