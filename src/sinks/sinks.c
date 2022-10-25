@@ -133,7 +133,6 @@ GstElement *create_file_sink_bin(guint sink_number){
     g_object_set(G_OBJECT(file_sink),
                  "max-size-time", 60000000000,
                  "location", output_file_format,
-                 "muxer-factory", "qtmux",
                  "async-finalize", TRUE,
                  NULL);
 

@@ -172,7 +172,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         g_printerr("Cannot connect inference-bin with sink-bin. Exiting!\n");
         return FAIL;
     }
-    g_print("Successfully connected inference-bin with sink-bin!\n");
+    g_print("Successfully connected inference-bin with osd-sink-bin!\n");
 
     /* Set the pipeline to "playing" state */
     g_print("Now playing:");
