@@ -62,9 +62,10 @@ RUN mkdir -p /models/configs/infer-engine && \
     cp /project/configs/infer-engine/pgie_config.txt /models/configs/infer-engine && \
     cp /project/configs/tracker/config_tracker_NvDCF_accuracy.yml /models/configs/tracker
 
-RUN mkdir /project/build && \
+RUN mkdir -p /project/build && \
     cd /project/build && \
     cmake .. && \
+    make && \
     make install
 
 CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]

@@ -6,6 +6,10 @@ project(kitten-detector VERSION 1.0.1 DESCRIPTION "Library to detect kitties on 
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_LIBDIR})
+
 find_package(GStreamer REQUIRED)
 find_package(DeepstreamAppCommon REQUIRED)
 find_package(NVDS REQUIRED)
@@ -26,7 +30,6 @@ include_directories(
         ${NVDS_INCLUDE_DIRS}
         ${CUDA_INCLUDE_DIRS}
         ${X11_INCLUDE_DIR}
-        src
 )
 
 add_library(kitten-detector SHARED
@@ -41,6 +44,9 @@ add_library(kitten-detector SHARED
         src/structures/structures.h src/structures/structures.c
         src/probes/probes.c src/probes/probes.h
         src/metadata/metadata.c src/metadata/metadata.h)
+add_executable(kitten-detector-cli cli/main.c)
+target_link_libraries(kitten-detector-cli kitten-detector)
+target_include_directories(kitten-detector-cli PRIVATE src)
 
 set_target_properties(kitten-detector PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(kitten-detector PROPERTIES SOVERSION 1)
@@ -63,27 +69,6 @@ target_link_libraries(kitten-detector
         ${X11_LIBRARIES}
         )
 
-#set(TARGET_LIB_DIR /usr/lib)
-#set(TARGET_HEADERS_DIR /usr/include)
-#
-#MESSAGE("Library will be installed in ${CMAKE_INSTALL_LIBDIR}. Public headers will be in ${CMAKE_INSTALL_INCLUDEDIR}")
-
-message("Setting RPATH to ${CMAKE_INSTALL_PREFIX}/lib")
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-
 install(TARGETS kitten-detector
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-find_package(KittenDetector REQUIRED)
-
-include_directories(
-        ${KITTEN_DETECTOR_INCLUDE_DIR}
-        cli
-)
-
-add_executable(kitten-detector-cli cli/main.c)
-
-target_link_libraries(kitten-detector-cli PUBLIC
-        ${KITTEN_DETECTOR_LIB}
-)
