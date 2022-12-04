@@ -8,6 +8,9 @@
 #include <gst/gst.h>
 #include <glib.h>
 
+#include <stdint.h>
+#include <time.h>
+
 #define BIN_NAME_LENGTH 128
 #define ELEMENT_NAME_LENGTH 128
 #define PAD_NAME_LENGTH 128
@@ -23,5 +26,6 @@ gint connect_two_elements(
 );
 int delete_all_files_in_directory(char *directory_path);
 void solve_lacking_pts_timestamps(GstBin* bin);
+uint64_t calculate_latency(struct timespec *start, struct timespec *end);
 
 #endif //KITTEN_DETECTOR_UTILS_H

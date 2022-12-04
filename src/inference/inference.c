@@ -8,6 +8,8 @@
 #include "pipeline.h"
 #include "inference.h"
 #include "utils/utils.h"
+#include "probes/probes.h"
+#include "probes/timestamps.h"
 
 GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint sources_number){
     GstElement *bin = gst_bin_new("primary-inference-bin");
@@ -34,7 +36,8 @@ GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint source
     g_object_set (G_OBJECT (nvtracker),
                   "ll-lib-file", TRACKER_LIBRARY_PATH,
                   "ll-config-file", TRACKER_CONFIG_FILE,
-                  "tracker-width", 640, "tracker-height", 480,
+                  "tracker-width", 640,
+                  "tracker-height", 480,
                   NULL);
 
     /* Add all elements to bin */
@@ -54,6 +57,46 @@ GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint source
     /* Create sink and src ghost pads */
     add_ghost_src_pad_to_bin(bin, post_pgie_queue, "src");
     add_ghost_sink_pad_to_bin(bin, pre_pgie_queue, "sink");
+
+    /* Add timestamp probes before and after inference-engine */
+    GstPad *pgie_src_pad = gst_element_get_static_pad(pgie, "src");
+    GstPad *pgie_sink_pad = gst_element_get_static_pad(pgie, "sink");
+    if(!pgie_src_pad || !pgie_sink_pad){
+        g_printerr("Cannot get src or sink pad of pgie!\n");
+        return NULL;
+    }
+    gst_pad_add_probe(
+        pgie_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
+        add_pre_inference_timestamp_to_metadata_probe,
+        NULL, NULL
+    );
+    gst_pad_add_probe(
+            pgie_src_pad, GST_PAD_PROBE_TYPE_BUFFER,
+            add_post_inference_timestamp_to_metadata_probe,
+            NULL, NULL
+    );
+    gst_object_unref(pgie_src_pad);
+    gst_object_unref(pgie_sink_pad);
+
+    /* Add timestamp probes before and after tracker element */
+    GstPad *nvtracker_src_pad = gst_element_get_static_pad(nvtracker, "src");
+    GstPad *nvtracker_sink_pad = gst_element_get_static_pad(nvtracker, "sink");
+    if(!nvtracker_src_pad || !nvtracker_sink_pad){
+        g_printerr("Cannot get src or sink pad of nvtracker!\n");
+        return NULL;
+    }
+    gst_pad_add_probe(
+            nvtracker_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
+            add_pre_tracker_timestamp_to_metadata_probe,
+            NULL, NULL
+    );
+    gst_pad_add_probe(
+            nvtracker_src_pad, GST_PAD_PROBE_TYPE_BUFFER,
+            add_post_tracker_timestamp_to_metadata_probe,
+            NULL, NULL
+    );
+    gst_object_unref(nvtracker_src_pad);
+    gst_object_unref(nvtracker_sink_pad);
 
     return bin;
 }

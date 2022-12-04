@@ -152,3 +152,8 @@ void solve_lacking_pts_timestamps(GstBin* bin){
     }
     gst_iterator_free (itr);
 }
+
+uint64_t calculate_latency(struct timespec *start, struct timespec *end){
+    uint64_t result = (end->tv_sec * 1000000000 + end->tv_nsec) - (start->tv_sec * 1000000000 + start->tv_nsec);
+    return result;
+}

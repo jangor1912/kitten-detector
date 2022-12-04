@@ -3,6 +3,7 @@
 //
 
 #include "gstnvdsmeta.h"
+#include "utils/utils.h"
 
 #include "metadata.h"
 
@@ -17,6 +18,12 @@ CommonMetaData *allocate_common_meta_data(SourceData *source_data){
 
     meta_data->camera_id = source_data->camera_id;
     meta_data->frame_number = source_data->frames_passed;
+    meta_data->pre_decoder_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->post_decoder_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->pre_inference_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->post_inference_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->pre_tracker_timestamp =(struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->post_tracker_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
 
     return meta_data;
 }
@@ -32,6 +39,12 @@ CommonMetaData *copy_common_metadata(CommonMetaData *src_meta){
 
     dst_meta->camera_id = src_meta->camera_id;
     dst_meta->frame_number = src_meta->frame_number;
+    dst_meta->pre_decoder_timestamp = src_meta->pre_decoder_timestamp;
+    dst_meta->post_decoder_timestamp = src_meta->post_decoder_timestamp;
+    dst_meta->pre_inference_timestamp = src_meta->pre_inference_timestamp;
+    dst_meta->post_inference_timestamp = src_meta->post_inference_timestamp;
+    dst_meta->pre_tracker_timestamp = src_meta->pre_tracker_timestamp;
+    dst_meta->post_tracker_timestamp = src_meta->post_tracker_timestamp;
 
     return dst_meta;
 }
@@ -43,7 +56,13 @@ gpointer common_meta_data_copy_func(gpointer data, gpointer user_data) {
 }
 
 void release_common_meta_data(CommonMetaData *common_meta_data) {
-    g_free(common_meta_data);
+    free(common_meta_data->pre_decoder_timestamp);
+    free(common_meta_data->post_decoder_timestamp);
+    free(common_meta_data->pre_inference_timestamp);
+    free(common_meta_data->post_inference_timestamp);
+    free(common_meta_data->pre_tracker_timestamp);
+    free(common_meta_data->post_tracker_timestamp);
+    free(common_meta_data);
     common_meta_data = NULL;
 }
 
@@ -63,4 +82,12 @@ void common_gst_nvds_meta_release_func(gpointer data, gpointer user_data) {
     NvDsUserMeta *user_meta = (NvDsUserMeta *)data;
     CommonMetaData *common_meta_data = (CommonMetaData *)user_meta->user_meta_data;
     g_free(common_meta_data);
+}
+
+CommonMetaData *get_common_metadata(NvDsUserMeta *user_metadata){
+    if(user_metadata->base_meta.meta_type == KITTEN_DETECTOR_COMMON_GST_META){
+        CommonMetaData *common_meta = (CommonMetaData *)(user_metadata->user_meta_data);
+        return common_meta;
+    }
+    return NULL;
 }

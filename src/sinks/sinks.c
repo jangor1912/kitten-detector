@@ -9,6 +9,7 @@
 
 #include "sinks.h"
 #include "utils/utils.h"
+#include "probes/probes.h"
 
 #define TILED_OUTPUT_WIDTH 1920
 #define TILED_OUTPUT_HEIGHT 1080
@@ -18,9 +19,10 @@
  * 2: HW mode (For Jetson only)
  */
 #define OSD_PROCESS_MODE 1
+#define OSD_DISPLAY_TEXT 1
+#define OSD_DISPLAY_BBOX 1
+#define OSD_DISPLAY_MASK 1
 
-/* By default, OSD will not display text. To display text, change this to 1 */
-#define OSD_DISPLAY_TEXT 0
 
 GstElement *create_tilled_display_sink_bin(guint sink_bin_number, guint sinks_number) {
     GstElement *bin = NULL;
@@ -67,6 +69,8 @@ GstElement *create_tilled_display_sink_bin(guint sink_bin_number, guint sinks_nu
     g_object_set(G_OBJECT(nvosd),
                  "process-mode", OSD_PROCESS_MODE,
                  "display-text", OSD_DISPLAY_TEXT,
+                 "display-bbox", OSD_DISPLAY_BBOX,
+                 "display-mask", OSD_DISPLAY_MASK,
                  NULL);
 
     g_object_set(G_OBJECT(sink),
@@ -92,6 +96,19 @@ GstElement *create_tilled_display_sink_bin(guint sink_bin_number, guint sinks_nu
     }
 
     add_ghost_sink_pad_to_bin(bin, before_tiler_queue, "sink");
+
+    /* Set probe to render proper text after OSD */
+    GstPad *osd_sink_pad = gst_element_get_static_pad(nvosd, "sink");
+    if(!osd_sink_pad){
+        g_printerr("Cannot get sink pad of osd element!\n");
+        return NULL;
+    }
+    gst_pad_add_probe(
+            osd_sink_pad, GST_PAD_PROBE_TYPE_BUFFER,
+            osd_sink_pad_buffer_probe,
+            NULL, NULL
+    );
+    gst_object_unref(osd_sink_pad);
 
     return bin;
 }

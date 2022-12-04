@@ -14,6 +14,8 @@
 #include "muxer/muxer.h"
 #include "handlers/handlers.h"
 
+#define SAVE_VIDEO 0
+
 int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_config) {
     GMainLoop *loop = NULL;
     PipelineData *pipeline_data = allocate_pipeline_data(sources_config->sources_number);
@@ -71,18 +73,11 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->source_bin);
         g_print("Successfully created source-bin (%s)!\n", source_uri);
 
-        /* Create file-sink-bin */
-        source_data->file_sink_bin = create_file_sink_bin(i);
-        if(!source_data->file_sink_bin){
-            g_printerr("Failed to create file-sink-bin %d. Exiting!\n", i);
-            return FAIL;
-        }
-        gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->file_sink_bin);
-        g_print("Successfully added file-sink-bin %d!\n", i);
+
 
         /* Use TEE element to split stream of frames into two:
-         * 1. Frames that are sent to file-sink-bin - for saving high-resolution video files
-         * 2. Frames that are sent to stream-muxer - downscaled and passed to inference-engine
+         * 1. Frames that are sent to stream-muxer - downscaled and passed to inference-engine
+         * 2. Frames that are sent to file-sink-bin - for saving high-resolution video files
          * */
 
         g_snprintf(tee_element_name, ELEMENT_NAME_LENGTH, "tee_%d", i);
@@ -107,21 +102,9 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         g_print("Successfully connected source-bin (%s) to tee element (%s)!\n",
                    source_uri, tee_element_name);
 
-        /* Connect tee element to file-sink-bin */
-        g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 0);
-        status += connect_two_elements(
-                source_data->tee, source_data->file_sink_bin,
-                "sink", tee_src_pad_name
-        );
-        if(status != OK){
-            g_printerr("Cannot connect tee (%s) to file-sink-bin. Exiting!\n", source_uri);
-            return FAIL;
-        }
-        g_print("Successfully connected tee (%s) to file-sink-bin. Exiting!\n", source_uri);
-
         /* Connect tee element to stream-muxer */
         g_snprintf(sink_pad_name, PAD_NAME_LENGTH, "sink_%d", i);
-        g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 1);
+        g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 0);
         status += connect_two_elements(
                 source_data->tee, pipeline_data->stream_muxer,
                 sink_pad_name, tee_src_pad_name
@@ -131,6 +114,29 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
             return FAIL;
         }
         g_print("Successfully connected source-bin (%s) to stream-muxer!\n", source_uri);
+
+        if(SAVE_VIDEO){
+            /* Create file-sink-bin */
+            source_data->file_sink_bin = create_file_sink_bin(i);
+            if(!source_data->file_sink_bin){
+                g_printerr("Failed to create file-sink-bin %d. Exiting!\n", i);
+                return FAIL;
+            }
+            gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->file_sink_bin);
+            g_print("Successfully added file-sink-bin %d!\n", i);
+
+            /* Connect tee element to file-sink-bin */
+            g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 1);
+            status += connect_two_elements(
+                    source_data->tee, source_data->file_sink_bin,
+                    "sink", tee_src_pad_name
+            );
+            if(status != OK){
+                g_printerr("Cannot connect tee (%s) to file-sink-bin. Exiting!\n", source_uri);
+                return FAIL;
+            }
+            g_print("Successfully connected tee (%s) to file-sink-bin. Exiting!\n", source_uri);
+        }
 
         /* Add common-meta-data attaching probe to the source-pad of source-bin */
         GstPad *source_bin_src_pad = gst_element_get_static_pad(source_data->source_bin, "src");
