@@ -19,12 +19,12 @@
 typedef struct {
     guint camera_id;
     long long int frame_number;
-    struct timespec *pre_decoder_timestamp;
-    struct timespec *post_decoder_timestamp;
-    struct timespec *pre_inference_timestamp;
-    struct timespec *post_inference_timestamp;
-    struct timespec *pre_tracker_timestamp;
-    struct timespec *post_tracker_timestamp;
+    GstClockTime pre_decoder_timestamp;
+    GstClockTime post_decoder_timestamp;
+    GstClockTime pre_inference_timestamp;
+    GstClockTime post_inference_timestamp;
+    GstClockTime pre_tracker_timestamp;
+    GstClockTime post_tracker_timestamp;
 } CommonMetaData;
 
 CommonMetaData *allocate_common_meta_data(SourceData *source_data);

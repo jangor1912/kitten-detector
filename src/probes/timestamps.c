@@ -4,37 +4,34 @@
 
 #include "probes/timestamps.h"
 #include "probes/probes.h"
-#include <sys/time.h>
 
-void set_timestamp(struct timespec *timestamp){
-    int result = clock_gettime(CLOCK_MONOTONIC_RAW, timestamp);
-    if(result != 0){
-        g_printerr("Cannot set timestamp!\n");
-    }
+GstClockTime get_timestamp(){
+    GstClockTime result = gst_clock_get_time(gst_system_clock_obtain());
+    return result;
 }
 
 void add_pre_decoder_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->pre_decoder_timestamp);
+    common_meta->pre_decoder_timestamp = get_timestamp();
 }
 
 void add_post_decoder_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->post_decoder_timestamp);
+    common_meta->post_decoder_timestamp = get_timestamp();
 }
 
 void add_pre_inference_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->pre_inference_timestamp);
+    common_meta->pre_inference_timestamp =get_timestamp();
 }
 
 void add_post_inference_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->post_inference_timestamp);
+    common_meta->post_inference_timestamp = get_timestamp();
 }
 
 void add_pre_tracker_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->pre_tracker_timestamp);
+    common_meta->pre_tracker_timestamp = get_timestamp();
 }
 
 void add_post_tracker_timestamp(CommonMetaData *common_meta, gpointer u_data){
-    set_timestamp(common_meta->post_tracker_timestamp);
+    common_meta->post_tracker_timestamp = get_timestamp();
 }
 
 

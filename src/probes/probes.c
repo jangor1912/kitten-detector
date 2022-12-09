@@ -141,8 +141,8 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
 
     long long int frame_number = -1;
 
-    uint64_t inference_latency = 0;
-    uint64_t tracker_latency = 0;
+    GstClockTime inference_latency = 0;
+    GstClockTime tracker_latency = 0;
 
     int text_offset = 0;
 
@@ -158,12 +158,8 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
         if(nvds_meta->meta_type == KITTEN_DETECTOR_COMMON_GST_META && nvds_meta->meta_data != NULL){
             common_meta = (CommonMetaData *)nvds_meta->meta_data;
             frame_number = common_meta->frame_number;
-            inference_latency = calculate_latency(
-                    common_meta->pre_inference_timestamp,
-                    common_meta->post_inference_timestamp);
-            tracker_latency = calculate_latency(
-                    common_meta->post_tracker_timestamp,
-                    common_meta->pre_tracker_timestamp);
+            inference_latency = common_meta->post_inference_timestamp - common_meta->pre_inference_timestamp;
+            tracker_latency = common_meta->post_tracker_timestamp - common_meta->pre_tracker_timestamp;
 
             if(common_meta == NULL){
                 g_printerr("Cannot extract CommonMeta from Nvidia meta! Will try with next buffer!");
@@ -183,22 +179,6 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
         guint person_count = 0;
         frame_meta = (NvDsFrameMeta *) (l_frame->data);
         for (l_obj = frame_meta->obj_meta_list; l_obj != NULL; l_obj = l_obj->next) {
-
-            for(l_user_meta = frame_meta->frame_user_meta_list; l_user_meta != NULL; l_user_meta = l_user_meta->next){
-                user_meta = (NvDsUserMeta *)(l_user_meta->data);
-                common_meta = get_common_metadata(user_meta);
-
-                if(common_meta != NULL){
-                    frame_number = common_meta->frame_number;
-                    inference_latency = calculate_latency(
-                            common_meta->pre_inference_timestamp,
-                            common_meta->post_inference_timestamp);
-                    tracker_latency = calculate_latency(
-                            common_meta->post_tracker_timestamp,
-                            common_meta->pre_tracker_timestamp);
-                }
-            }
-
             obj_meta = (NvDsObjectMeta *) (l_obj->data);
             if (obj_meta->class_id == PGIE_CLASS_ID_VEHICLE) {
                 vehicle_count++;
@@ -207,6 +187,17 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
             if (obj_meta->class_id == PGIE_CLASS_ID_PERSON) {
                 person_count++;
                 num_rects++;
+            }
+        }
+
+        for(l_user_meta = frame_meta->frame_user_meta_list; l_user_meta != NULL; l_user_meta = l_user_meta->next){
+            user_meta = (NvDsUserMeta *)(l_user_meta->data);
+            common_meta = get_common_metadata(user_meta);
+
+            if(common_meta != NULL) {
+                frame_number = common_meta->frame_number;
+                inference_latency = common_meta->post_inference_timestamp - common_meta->pre_inference_timestamp;
+                tracker_latency = common_meta->post_tracker_timestamp - common_meta->pre_tracker_timestamp;
             }
         }
 
@@ -221,11 +212,11 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
         text_offset += snprintf(display_text + text_offset ,
                                 MAX_DISPLAY_LEN, "Vehicle = %d\n", vehicle_count);
         text_offset += snprintf(display_text + text_offset ,
-                                MAX_DISPLAY_LEN, "%7.02f ms (%lu ns)\n",
+                                MAX_DISPLAY_LEN, "Inference latency = %7.02f ms (%lu ns)\n",
                                 inference_latency / 1000000.0, inference_latency);
-//        text_offset += snprintf(display_text + text_offset ,
-//                                MAX_DISPLAY_LEN, "Tracker latency = %ld.%06ld\n",
-//                                (int)tracker_latency->tv_sec, tracker_latency->tv_usec);
+        text_offset += snprintf(display_text + text_offset ,
+                                MAX_DISPLAY_LEN, "Tracking latency = %7.02f ms (%lu ns)\n",
+                                tracker_latency / 1000000.0, tracker_latency);
 
         display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
         NvOSD_TextParams *txt_params  = &display_meta->text_params[source_number];
@@ -254,11 +245,6 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
 
         source_number++;
     }
-
-    printf("Inference latency = %7.02f ms (%lu ns)\n",
-           inference_latency / 1000000.0, inference_latency);
-    printf("Tracker latency =  %7.02f ms (%lu ns)\n",
-           tracker_latency / 1000000.0, tracker_latency);
 
     return GST_PAD_PROBE_OK;
 }

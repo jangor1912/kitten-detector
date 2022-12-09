@@ -18,12 +18,12 @@ CommonMetaData *allocate_common_meta_data(SourceData *source_data){
 
     meta_data->camera_id = source_data->camera_id;
     meta_data->frame_number = source_data->frames_passed;
-    meta_data->pre_decoder_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
-    meta_data->post_decoder_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
-    meta_data->pre_inference_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
-    meta_data->post_inference_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
-    meta_data->pre_tracker_timestamp =(struct timespec*) malloc(sizeof(struct timespec));
-    meta_data->post_tracker_timestamp = (struct timespec*) malloc(sizeof(struct timespec));
+    meta_data->pre_decoder_timestamp = 0;
+    meta_data->post_decoder_timestamp = 0;
+    meta_data->pre_inference_timestamp = 0;
+    meta_data->post_inference_timestamp = 0;
+    meta_data->pre_tracker_timestamp = 0;
+    meta_data->post_tracker_timestamp = 0;
 
     return meta_data;
 }
@@ -56,12 +56,6 @@ gpointer common_meta_data_copy_func(gpointer data, gpointer user_data) {
 }
 
 void release_common_meta_data(CommonMetaData *common_meta_data) {
-    free(common_meta_data->pre_decoder_timestamp);
-    free(common_meta_data->post_decoder_timestamp);
-    free(common_meta_data->pre_inference_timestamp);
-    free(common_meta_data->post_inference_timestamp);
-    free(common_meta_data->pre_tracker_timestamp);
-    free(common_meta_data->post_tracker_timestamp);
     free(common_meta_data);
     common_meta_data = NULL;
 }
