@@ -50,3 +50,16 @@ or
   1920 1080 1 \
   file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_1080p_h264.mp4
 ```
+
+If you want to run multiple streams at once:
+```bash
+./kitten-detector-cli \
+  1920 1080 1 \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_1080p_h264.mp4 \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/yoga.mp4 \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_ride_bike.mov \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_walk.mov \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_run.mov \
+  file:///opt/nvidia/deepstream/deepstream/samples/streams/sample_qHD.mp4 \
+  rtsp://192.168.0.116:8080/h264_pcm.sdp
+```
