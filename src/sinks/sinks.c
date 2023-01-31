@@ -182,3 +182,109 @@ GstElement *create_file_sink_bin(guint sink_number){
 
     return bin;
 }
+
+GstElement *create_image_sink_bin(guint sink_number){
+    GstElement *bin = NULL;
+    /* Create a sink GstBin to abstract this bin's content from the rest of the pipeline */
+    gchar sink_bin_name[BIN_NAME_LENGTH];
+    g_snprintf(sink_bin_name, BIN_NAME_LENGTH, "image-sink-bin-%d", sink_number);
+    bin = gst_bin_new(sink_bin_name);
+
+    /* Create all file-sink elements */
+    GstElement *before_sink_queue = gst_element_factory_make("queue", "before-image-sink-queue");
+    GstElement *converter = gst_element_factory_make("nvvideoconvert", "image-sink-video-converter");
+    GstElement *caps_filter = gst_element_factory_make("capsfilter", "image-sink-caps-filter");
+    GstElement *encoder = gst_element_factory_make("jpegenc", "image-sink-jpeg-encoder");
+    GstElement *file_sink = gst_element_factory_make("multifilesink", "image-multi-file-sink");
+
+    if(!before_sink_queue || !converter || !caps_filter || !encoder || !file_sink){
+        g_printerr("One of the elements of image-sink %d could not be created. Exiting!\n", sink_number);
+        return NULL;
+    }
+
+    /* Configure image-sink to create 1 min long files and save it to proper directory */
+    gchar output_directory[MAX_DIRECTORY_PATH_SIZE];
+    gchar output_file_format[MAX_DIRECTORY_PATH_SIZE];
+    g_snprintf(output_directory, MAX_DIRECTORY_PATH_SIZE,
+               "%s/%s", FILE_SINK_DIRECTORY, sink_bin_name);
+    g_snprintf(output_file_format, MAX_DIRECTORY_PATH_SIZE,
+               "%s/%s", output_directory, JPEG_NAME_FORMAT);
+
+    /* Create directory and delete all files in it */
+    struct stat st = {0};
+    if (stat(output_directory, &st) == -1) {
+        mkdir(output_directory, 0777);
+    }
+    delete_all_files_in_directory(output_directory);
+
+    g_object_set(G_OBJECT(file_sink),
+                 "location", output_file_format,
+                 NULL);
+    GstCaps *caps = gst_caps_new_simple(
+            "video/x-raw",
+            "format", G_TYPE_STRING, "I420",
+            "width", G_TYPE_INT, JPEG_WIDTH,
+            "height", G_TYPE_INT, JPEG_HEIGHT,
+            NULL);
+    g_object_set (G_OBJECT (caps_filter), "caps", caps, NULL);
+
+    /* Add all elements to bin */
+    gst_bin_add_many(GST_BIN(bin),
+                     before_sink_queue,
+                     converter,
+                     caps_filter,
+                     encoder,
+                     file_sink,
+                     NULL);
+
+    /* Link all elements together */
+    if (!gst_element_link_many(before_sink_queue,
+                               converter,
+                               caps_filter,
+                               encoder,
+                               file_sink,
+                               NULL)) {
+        g_printerr("Cannot link elements of %d image-sink-bin. Exiting.\n", sink_number);
+        return NULL;
+    }
+
+    add_ghost_sink_pad_to_bin(bin, before_sink_queue, "sink");
+
+    return bin;
+}
+
+
+GstElement *create_fake_sink_bin(guint sink_number){
+    GstElement *bin = NULL;
+    /* Create a sink GstBin to abstract this bin's content from the rest of the pipeline */
+    gchar sink_bin_name[BIN_NAME_LENGTH];
+    g_snprintf(sink_bin_name, BIN_NAME_LENGTH, "fake-sink-bin-%d", sink_number);
+    bin = gst_bin_new(sink_bin_name);
+
+    /* Create all file-sink elements */
+    GstElement *before_sink_queue = gst_element_factory_make("queue", "before-fake-sink-queue");
+    GstElement *fake_sink = gst_element_factory_make("fakesink", "fake-sink");
+
+    if(!before_sink_queue || !fake_sink){
+        g_printerr("One of the elements of fake-sink %d could not be created. Exiting!\n", sink_number);
+        return NULL;
+    }
+
+    /* Add all elements to bin */
+    gst_bin_add_many(GST_BIN(bin),
+                     before_sink_queue,
+                     fake_sink,
+                     NULL);
+
+    /* Link all elements together */
+    if (!gst_element_link_many(before_sink_queue,
+                               fake_sink,
+                               NULL)) {
+        g_printerr("Cannot link elements of %d fake-sink-bin. Exiting.\n", sink_number);
+        return NULL;
+    }
+
+    add_ghost_sink_pad_to_bin(bin, before_sink_queue, "sink");
+
+    return bin;
+}

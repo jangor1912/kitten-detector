@@ -43,7 +43,7 @@ add_library(kitten-detector SHARED
         src/sources/decoders.c src/sources/decoders.h
         src/structures/structures.h src/structures/structures.c
         src/probes/probes.c src/probes/probes.h
-        src/metadata/metadata.c src/metadata/metadata.h src/probes/timestamps.c src/probes/timestamps.h)
+        src/metadata/metadata.c src/metadata/metadata.h src/probes/timestamps.c src/probes/timestamps.h src/recorder/recorder.c src/recorder/recorder.h)
 add_executable(kitten-detector-cli cli/main.c)
 target_link_libraries(kitten-detector-cli kitten-detector)
 target_include_directories(kitten-detector-cli PRIVATE src)

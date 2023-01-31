@@ -4,8 +4,8 @@
 
 #include "structures.h"
 
-RecordingManager *allocate_recording_manager();
-void deallocate_recording_manager(RecordingManager *manager);
+Recorder *allocate_recorder();
+void deallocate_recorder(Recorder *recorder);
 
 SourceData *allocate_source_data(guint source_id);
 void deallocate_source_data(SourceData *elements);
@@ -34,19 +34,11 @@ PipelineData *allocate_pipeline_data(guint sources_number){
         }
     }
 
-    elements->recording_manager = allocate_recording_manager();
-    if(elements->recording_manager == NULL){
-        g_printerr("Cannot allocate recording manager!\n");
-        deallocate_pipeline_elements(elements);
-        return NULL;
-    }
-
     elements->pipeline = NULL;
     elements->stream_muxer = NULL;
     elements->inference_bin = NULL;
     elements->osd_sink_bin = NULL;
     elements->sources_number = sources_number;
-    elements->state = Recording;
 
     return elements;
 }
@@ -62,8 +54,6 @@ void deallocate_pipeline_elements(PipelineData *elements){
             deallocate_source_data(elements->sources[i]);
         }
     }
-
-    deallocate_recording_manager(elements->recording_manager);
 
     g_free(elements);
 }
@@ -82,6 +72,8 @@ SourceData *allocate_source_data(guint source_id){
     elements->tee = NULL;
     elements->file_sink_bin = NULL;
 
+    elements->recorder = allocate_recorder();
+
     return elements;
 }
 
@@ -90,26 +82,30 @@ void deallocate_source_data(SourceData *elements){
         return;
     }
 
+    deallocate_recorder(elements->recorder);
+
     g_free(elements);
 }
-RecordingManager *allocate_recording_manager(){
-    RecordingManager *manager = (RecordingManager*) g_malloc(sizeof(RecordingManager));
+Recorder *allocate_recorder(){
+    Recorder *recorder = (Recorder*) g_malloc(sizeof(Recorder));
 
-    if(manager == NULL){
-        g_printerr("Cannot allocate recording manager!\n");
+    if(recorder == NULL){
+        g_printerr("Cannot allocate recorder!\n");
         return NULL;
     }
 
-    manager->recording_start_time = 0;
-    manager->recording_stop_time = 0;
+    recorder->recorder_bin = NULL;
+    recorder->state = Recording;
 
-    return manager;
+    return recorder;
 }
 
-void deallocate_recording_manager(RecordingManager *manager){
-    if(manager == NULL){
+void deallocate_recorder(Recorder *recorder){
+    if(recorder == NULL){
         return;
     }
 
-    g_free(manager);
+    recorder->recorder_bin = NULL;
+
+    g_free(recorder);
 }

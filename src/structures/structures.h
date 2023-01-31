@@ -8,12 +8,12 @@
 #include <gst/gst.h>
 #include <glib.h>
 
-enum PipelineState {Recording = 1, NotRecording = 0};
+enum RecorderState {Recording = 1, NotRecording = 0};
 
 typedef struct {
-    time_t recording_start_time;
-    time_t recording_stop_time;
-} RecordingManager;
+    GstElement *recorder_bin;
+    enum RecorderState state;
+} Recorder;
 
 typedef struct {
     GstElement *source_bin;
@@ -22,6 +22,8 @@ typedef struct {
 
     guint camera_id;
     long long int frames_passed;
+
+    Recorder *recorder;
 } SourceData;
 
 typedef struct {
@@ -33,9 +35,6 @@ typedef struct {
 
     SourceData **sources;
     guint sources_number;
-
-    enum PipelineState state;
-    RecordingManager *recording_manager;
 } PipelineData;
 
 PipelineData *allocate_pipeline_data(guint sources_number);

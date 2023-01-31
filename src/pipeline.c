@@ -13,6 +13,7 @@
 #include "inference/inference.h"
 #include "muxer/muxer.h"
 #include "handlers/handlers.h"
+#include "recorder/recorder.h"
 
 #define SAVE_VIDEO 0
 
@@ -136,6 +137,18 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
                 return FAIL;
             }
             g_print("Successfully connected tee (%s) to file-sink-bin. Exiting!\n", source_uri);
+        } else {
+            /* Create recorder */
+            Recorder *recorder = source_data->recorder;
+            if(recorder == NULL){
+                g_printerr("Failed to retrieve Recorder (%s) from source-data. Exiting!\n", source_uri);
+                return FAIL;
+            }
+
+            GstElement *recorder_bin = create_recorder_bin(i);
+            recorder->recorder_bin = recorder_bin;
+
+            gst_bin_add(GST_BIN(pipeline_data->pipeline), recorder_bin);
         }
 
         /* Add common-meta-data attaching probe to the source-pad of source-bin */
