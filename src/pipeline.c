@@ -74,8 +74,6 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
         gst_bin_add(GST_BIN(pipeline_data->pipeline), source_data->source_bin);
         g_print("Successfully created source-bin (%s)!\n", source_uri);
 
-
-
         /* Use TEE element to split stream of frames into two:
          * 1. Frames that are sent to stream-muxer - downscaled and passed to inference-engine
          * 2. Frames that are sent to file-sink-bin - for saving high-resolution video files
@@ -147,8 +145,38 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
 
             GstElement *recorder_bin = create_recorder_bin(i);
             recorder->recorder_bin = recorder_bin;
+            recorder->state = Recording;
+
+            /* Register the "start-recording" and "stop-recording" signals on the pipeline */
+            g_signal_new("start-recording", G_TYPE_FROM_INSTANCE(recorder_bin),
+                         G_SIGNAL_RUN_LAST, 0,
+                         NULL, NULL,
+                         NULL, G_TYPE_NONE, 0);
+            g_signal_new("stop-recording", G_TYPE_FROM_INSTANCE(recorder_bin),
+                         G_SIGNAL_RUN_LAST, 0,
+                         NULL, NULL,
+                         NULL, G_TYPE_NONE, 0);
+            g_print("Successfully registered 'start-recording' and 'stop-recording' signals for %d source.\n", i);
+
+            g_signal_connect(recorder_bin, "stop-recording", G_CALLBACK (stop_recording_handler), &recorder);
+            g_signal_connect(recorder_bin, "start-recording", G_CALLBACK (stop_recording_handler), &recorder);
 
             gst_bin_add(GST_BIN(pipeline_data->pipeline), recorder_bin);
+
+            g_print("Successfully added recorder-bin %d!\n", i);
+
+            /* Connect tee element to recorder-bin */
+            g_snprintf(tee_src_pad_name, PAD_NAME_LENGTH, "src_%d", 1);
+            status += connect_two_elements(
+                    source_data->tee, source_data->recorder->recorder_bin,
+                    "sink", tee_src_pad_name
+            );
+            if(status != OK){
+                g_printerr("Cannot connect tee (%s) to recorder-bin. Exiting!\n", source_uri);
+                return FAIL;
+            }
+            g_print("Successfully connected tee (%s) to recorder-bin. Exiting!\n", source_uri);
+
         }
 
         /* Add common-meta-data attaching probe to the source-pad of source-bin */

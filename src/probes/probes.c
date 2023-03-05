@@ -5,10 +5,9 @@
 #include <stdio.h>
 
 #include "gstnvdsmeta.h"
-#include "sys/time.h"
 
 #include "probes/probes.h"
-#include "utils/utils.h"
+#include "structures/structures.h"
 
 #define MAX_DISPLAY_LEN 1024
 #define PGIE_CLASS_ID_VEHICLE 0
@@ -243,6 +242,54 @@ GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info
 
         nvds_add_display_meta_to_frame(frame_meta, display_meta);
 
+        source_number++;
+    }
+
+    return GST_PAD_PROBE_OK;
+}
+
+
+GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * info, gpointer u_data){
+    GstBuffer *buf = (GstBuffer *) info->data;
+    NvDsObjectMeta *obj_meta = NULL;
+    NvDsMetaList * l_frame = NULL;
+    NvDsMetaList * l_obj = NULL;
+    NvDsFrameMeta *frame_meta = NULL;
+    CommonMetaData *common_meta = NULL;
+
+    Recorder *recorder = (Recorder *) u_data;
+
+    NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
+
+    if(batch_meta == NULL){
+        NvDsMeta *nvds_meta = gst_buffer_get_nvds_meta(buf);
+        if(nvds_meta == NULL){
+            g_printerr("Cannot extract neither Nvidia batch meta not Nvidia meta! Deleting probe!");
+            return GST_PAD_PROBE_REMOVE;
+        }
+
+        if(nvds_meta->meta_type == KITTEN_DETECTOR_COMMON_GST_META && nvds_meta->meta_data != NULL){
+            common_meta = (CommonMetaData *)nvds_meta->meta_data;
+            if(common_meta == NULL){
+                g_printerr("Cannot extract CommonMeta from Nvidia meta! Will try with next buffer!");
+            }
+        } else{
+            g_printerr("Cannot extract proper CommonMeta from Nvidia meta! "
+                       "The meta-type is incorrect! Deleting probe!");
+            return GST_PAD_PROBE_REMOVE;
+        }
+    }
+
+    gint source_number = 0;
+
+    for (l_frame = batch_meta->frame_meta_list; l_frame != NULL; l_frame = l_frame->next) {
+        frame_meta = (NvDsFrameMeta *) (l_frame->data);
+        for (l_obj = frame_meta->obj_meta_list; l_obj != NULL; l_obj = l_obj->next) {
+            obj_meta = (NvDsObjectMeta *) (l_obj->data);
+            if (obj_meta->class_id == PGIE_CLASS_ID_PERSON) {
+                g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
+            }
+        }
         source_number++;
     }
 
