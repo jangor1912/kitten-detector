@@ -35,5 +35,6 @@ GstPadProbeReturn on_new_buffer_with_common_metadata(
         common_metadata_handler_t common_metadata_handler);
 
 GstPadProbeReturn osd_sink_pad_buffer_probe(GstPad * pad, GstPadProbeInfo * info, gpointer u_data);
+GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * info, gpointer u_data);
 
 #endif //KITTEN_DETECTOR_PROBES_H

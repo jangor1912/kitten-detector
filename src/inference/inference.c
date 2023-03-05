@@ -11,7 +11,7 @@
 #include "probes/probes.h"
 #include "probes/timestamps.h"
 
-GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint sources_number){
+GstElement *create_primary_inference_bin(StreamMuxerConfig *config, PipelineData *pipeline_data){
     GstElement *bin = gst_bin_new("primary-inference-bin");
 
     /* Create all elements */
@@ -25,7 +25,7 @@ GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint source
         return NULL;
     }
 
-    guint batch_size = MIN(config->max_batch_size, sources_number);
+    guint batch_size = MIN(config->max_batch_size, pipeline_data->sources_number);
 
     /* Configure all elements */
     g_object_set (G_OBJECT (pgie),
@@ -94,6 +94,11 @@ GstElement *create_primary_inference_bin(StreamMuxerConfig *config, guint source
             nvtracker_src_pad, GST_PAD_PROBE_TYPE_BUFFER,
             add_post_tracker_timestamp_to_metadata_probe,
             NULL, NULL
+    );
+    gst_pad_add_probe(
+            nvtracker_src_pad, GST_PAD_PROBE_TYPE_BUFFER,
+            recorder_manager_buffer_probe,
+            (gpointer) pipeline_data, NULL
     );
     gst_object_unref(nvtracker_src_pad);
     gst_object_unref(nvtracker_sink_pad);

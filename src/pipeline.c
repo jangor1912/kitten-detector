@@ -51,7 +51,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
     gst_bin_add(GST_BIN(pipeline_data->pipeline), pipeline_data->stream_muxer);
     g_print("Successfully created stream-muxer!\n");
 
-    pipeline_data->inference_bin = create_primary_inference_bin(streammux_config, sources_number);
+    pipeline_data->inference_bin = create_primary_inference_bin(streammux_config, pipeline_data);
     if(!pipeline_data->inference_bin){
         g_printerr("Inference bin cannot be created. Exiting!\n");
         return FAIL;

@@ -257,7 +257,7 @@ GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * 
     NvDsFrameMeta *frame_meta = NULL;
     CommonMetaData *common_meta = NULL;
 
-    Recorder *recorder = (Recorder *) u_data;
+    PipelineData *pipeline_data = (PipelineData *) u_data;
 
     NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
 
@@ -283,13 +283,23 @@ GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * 
     gint source_number = 0;
 
     for (l_frame = batch_meta->frame_meta_list; l_frame != NULL; l_frame = l_frame->next) {
+        gboolean person_found = FALSE;
         frame_meta = (NvDsFrameMeta *) (l_frame->data);
         for (l_obj = frame_meta->obj_meta_list; l_obj != NULL; l_obj = l_obj->next) {
             obj_meta = (NvDsObjectMeta *) (l_obj->data);
             if (obj_meta->class_id == PGIE_CLASS_ID_PERSON) {
-                g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
+                person_found = TRUE;
             }
         }
+
+        Recorder *recorder = pipeline_data->sources[source_number]->recorder;
+
+        if(person_found){
+            g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
+        } else {
+            g_signal_emit_by_name(recorder->recorder_bin, "stop-recording", NULL);
+        }
+
         source_number++;
     }
 
