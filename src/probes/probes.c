@@ -17,14 +17,16 @@ GstPadProbeReturn stop_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    return GST_PAD_PROBE_OK;
+    g_print("Reached 'stop_recording_probe_callback'!\n");
+    return GST_PAD_PROBE_DROP;
 }
 
 GstPadProbeReturn start_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    return GST_PAD_PROBE_OK;
+    g_print("Reached 'start_recording_probe_callback'!\n");
+    return GST_PAD_PROBE_DROP;
 }
 
 
@@ -295,8 +297,10 @@ GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * 
         Recorder *recorder = pipeline_data->sources[source_number]->recorder;
 
         if(person_found){
+            g_print("Person was found - starting recording!\n");
             g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
         } else {
+            g_print("Person wasn't found - stopping recording!\n");
             g_signal_emit_by_name(recorder->recorder_bin, "stop-recording", NULL);
         }
 

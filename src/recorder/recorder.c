@@ -63,14 +63,31 @@ GstElement *create_recorder_bin(guint sink_number){
     return bin;
 }
 
-void start_recording_handler(GstElement *src, GstPad *new_pad, Recorder *recorder) {
+void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {
+    g_print("Reached: 'start_recording_handler'\n");
+
+    Recorder *recorder = (Recorder*) recorder_data;
+
+    if(recorder == NULL){
+        g_printerr("Recorder is NULL in 'start_recording_handler'. Exiting!\n");
+        return;
+    }
+
+    if(recorder->recorder_bin == NULL){
+        g_printerr("Recorder-Bin is NULL in 'start_recording_handler'. Exiting!\n");
+        return;
+    }
+
     if(recorder->state == Recording) {
         g_print("Recorder is already running - nothing to do here!\n");
         return;
     }
 
-    GstBin *recorder_bin = (GstBin *) recorder->recorder_bin;
-    GstElement *recorder_tee = gst_bin_get_by_name(recorder_bin, RECORDER_TEE_NAME);
+    recorder->state = Recording;
+    g_print("Successfully changed Recorder state to Recording\n");
+
+    g_print("Trying to add linking probe to recorder\n");
+    GstElement *recorder_tee = gst_bin_get_by_name(GST_BIN(recorder->recorder_bin), RECORDER_TEE_NAME);
     if(recorder_tee == NULL){
         g_printerr("Cannot get 'recorder-tee' element from recorder-bin. Exiting!\n");
         return;
@@ -81,61 +98,50 @@ void start_recording_handler(GstElement *src, GstPad *new_pad, Recorder *recorde
         g_printerr("Cannot get source pad of recorder tee!\n");
         return;
     }
+    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+                       start_recording_probe_callback,
+                       (gpointer) recorder->recorder_bin, NULL);
+    g_print("Successfully added 'start_recording_probe_callback' to 'recorder_tee_src_pad'\n");
 
-    GstElement *image_sink_bin = gst_bin_get_by_name(recorder_bin, "image-sink-bin-0");
-    if(image_sink_bin == NULL){
-        g_printerr("Cannot get 'image-sink-bin' element from recorder-bin. Exiting!\n");
-        return;
-    }
-
-    GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
-    if(image_sink_bin_sink_pad == NULL){
-        g_printerr("Cannot retrieve sink-pad of image-sink-bin!\n");
-        return;
-    }
-
-    if (gst_pad_link(recorder_tee_src_pad, image_sink_bin_sink_pad) != GST_PAD_LINK_OK) {
-        g_printerr("Cannot link recorder-tee to image-sink!\n");
-        return;
-    }
-    recorder->state = Recording;
 }
 
-void stop_recording_handler(GstElement *src, GstPad *new_pad, Recorder *recorder) {
+void stop_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {
+    g_print("Reached: 'stop_recording_handler'\n");
+
+    Recorder *recorder = (Recorder*) recorder_data;
+
+    if(recorder == NULL){
+        g_printerr("Recorder is NULL in 'stop_recording_handler'. Exiting!\n");
+        return;
+    }
+
+    if(recorder->recorder_bin == NULL){
+        g_printerr("Recorder-Bin is NULL in 'stop_recording_handler'. Exiting!\n");
+        return;
+    }
+
     if(recorder->state == NotRecording) {
         g_print("Recorder is already unlinked - nothing to do here!\n");
         return;
     }
 
-    GstBin *recorder_bin = (GstBin *) recorder->recorder_bin;
-//    GstElement *recorder_tee = gst_bin_get_by_name(recorder_bin, RECORDER_TEE_NAME);
-//    if(recorder_tee == NULL){
-//        g_printerr("Cannot get 'recorder-tee' element from recorder-bin. Exiting!\n");
-//        return;
-//    }
-//
-//    GstPad *recorder_tee_src_pad = gst_element_get_static_pad(recorder_tee, "src_1");
-//    if(!recorder_tee_src_pad){
-//        g_printerr("Cannot get source pad of recorder tee!\n");
-//        return;
-//    }
-
-    GstElement *image_sink_bin = gst_bin_get_by_name(recorder_bin, "image-sink-bin-0");
-    if(image_sink_bin == NULL){
-        g_printerr("Cannot get 'image-sink-bin' element from recorder-bin. Exiting!\n");
-        return;
-    }
-
-    GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
-    if(image_sink_bin_sink_pad == NULL){
-        g_printerr("Cannot retrieve sink-pad of image-sink-bin!\n");
-        return;
-    }
-
-//    if (gst_pad_unlink(recorder_tee_src_pad, image_sink_bin_sink_pad) != GST_PAD_LINK_OK) {
-//        g_printerr("Cannot link recorder-tee to image-sink!\n");
-//        return;
-//    }
-    g_free(image_sink_bin_sink_pad);
     recorder->state = NotRecording;
+    g_print("Successfully changed Recorder state to NotRecording\n");
+
+    g_print("Trying to add linking probe to recorder\n");
+    GstElement *recorder_tee = gst_bin_get_by_name(GST_BIN(recorder->recorder_bin), RECORDER_TEE_NAME);
+    if(recorder_tee == NULL){
+        g_printerr("Cannot get 'recorder-tee' element from recorder-bin. Exiting!\n");
+        return;
+    }
+
+    GstPad *recorder_tee_src_pad = gst_element_get_static_pad(recorder_tee, "src_1");
+    if(!recorder_tee_src_pad){
+        g_printerr("Cannot get source pad of recorder tee!\n");
+        return;
+    }
+    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+                       stop_recording_probe_callback,
+                       (gpointer) recorder->recorder_bin, NULL);
+    g_print("Successfully added 'stop_recording_probe_callback' to 'recorder_tee_src_pad'\n");
 }

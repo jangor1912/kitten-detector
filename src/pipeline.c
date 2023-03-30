@@ -158,8 +158,8 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
                          NULL, G_TYPE_NONE, 0);
             g_print("Successfully registered 'start-recording' and 'stop-recording' signals for %d source.\n", i);
 
-            g_signal_connect(recorder_bin, "stop-recording", G_CALLBACK (stop_recording_handler), &recorder);
-            g_signal_connect(recorder_bin, "start-recording", G_CALLBACK (stop_recording_handler), &recorder);
+            g_signal_connect(recorder_bin, "stop-recording", G_CALLBACK (stop_recording_handler), (gpointer) recorder);
+            g_signal_connect(recorder_bin, "start-recording", G_CALLBACK (start_recording_handler), (gpointer) recorder);
 
             gst_bin_add(GST_BIN(pipeline_data->pipeline), recorder_bin);
 
