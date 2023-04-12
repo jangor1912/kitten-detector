@@ -17,7 +17,40 @@ GstPadProbeReturn stop_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    g_print("Reached 'stop_recording_probe_callback'!\n");
+    // g_print("Reached 'stop_recording_probe_callback'!\n");
+    GstElement *recorder_bin = (GstElement*) u_data;
+    if(recorder_bin == NULL){
+        g_printerr("Recorder-bin is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstElement * image_sink_bin = gst_bin_get_by_name(GST_BIN(recorder_bin), "image-sink-bin-0");
+    if(image_sink_bin == NULL){
+        g_printerr("Image-sink-bin is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
+    if(image_sink_bin_sink_pad == NULL){
+        g_printerr("Image-sink-bin sink-pad is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstElement *recorder_tee = gst_bin_get_by_name(GST_BIN(recorder_bin), "recorder-tee");
+    if(image_sink_bin == NULL){
+        g_printerr("Recorder tee is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstPad *recorder_tee_bin_src_pad = gst_element_get_static_pad(recorder_tee, "src_1");
+    if(recorder_tee_bin_src_pad == NULL){
+        g_printerr("Recorder-tee src-1-pad is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    gst_pad_unlink(recorder_tee_bin_src_pad,image_sink_bin_sink_pad);
+    gst_element_send_event(image_sink_bin, gst_event_new_eos());
+
     return GST_PAD_PROBE_DROP;
 }
 
@@ -25,7 +58,52 @@ GstPadProbeReturn start_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    g_print("Reached 'start_recording_probe_callback'!\n");
+    // g_print("Reached 'start_recording_probe_callback'!\n");
+
+    GstElement *recorder_bin = (GstElement*) u_data;
+    if(recorder_bin == NULL){
+        g_printerr("Recorder-bin is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstElement * image_sink_bin = gst_bin_get_by_name(GST_BIN(recorder_bin), "image-sink-bin-0");
+    if(image_sink_bin == NULL){
+        g_printerr("Image-sink-bin is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
+    if(image_sink_bin_sink_pad == NULL){
+        g_printerr("Image-sink-bin sink-pad is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstElement *recorder_tee = gst_bin_get_by_name(GST_BIN(recorder_bin), "recorder-tee");
+    if(image_sink_bin == NULL){
+        g_printerr("Recorder tee is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    GstPad *recorder_tee_bin_src_pad = gst_element_get_static_pad(recorder_tee, "src_1");
+    if(recorder_tee_bin_src_pad == NULL){
+        g_printerr("Recorder-tee src-1-pad is NULL! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    if(gst_pad_link(recorder_tee_bin_src_pad, image_sink_bin_sink_pad) != GST_PAD_LINK_OK){
+        g_printerr("Cannot link recorder-tee with image-sink-bin! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
+    gchar *recorder_tee_stream_id = gst_pad_get_stream_id(recorder_tee_bin_src_pad);
+    gchar *image_sink_stream_id = gst_pad_create_stream_id(
+            image_sink_bin_sink_pad,
+            recorder_tee,
+            recorder_tee_stream_id);
+    gst_element_send_event(
+            image_sink_bin,
+            gst_event_new_stream_start(image_sink_stream_id));
+
     return GST_PAD_PROBE_DROP;
 }
 
@@ -297,10 +375,10 @@ GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * 
         Recorder *recorder = pipeline_data->sources[source_number]->recorder;
 
         if(person_found){
-            g_print("Person was found - starting recording!\n");
+            // g_print("Person was found - starting recording!\n");
             g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
         } else {
-            g_print("Person wasn't found - stopping recording!\n");
+            // g_print("Person wasn't found - stopping recording!\n");
             g_signal_emit_by_name(recorder->recorder_bin, "stop-recording", NULL);
         }
 

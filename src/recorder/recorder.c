@@ -64,7 +64,7 @@ GstElement *create_recorder_bin(guint sink_number){
 }
 
 void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {
-    g_print("Reached: 'start_recording_handler'\n");
+    // g_print("Reached: 'start_recording_handler'\n");
 
     Recorder *recorder = (Recorder*) recorder_data;
 
@@ -79,7 +79,7 @@ void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder
     }
 
     if(recorder->state == Recording) {
-        g_print("Recorder is already running - nothing to do here!\n");
+        // g_print("Recorder is already running - nothing to do here!\n");
         return;
     }
 
@@ -106,7 +106,7 @@ void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder
 }
 
 void stop_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {
-    g_print("Reached: 'stop_recording_handler'\n");
+    // g_print("Reached: 'stop_recording_handler'\n");
 
     Recorder *recorder = (Recorder*) recorder_data;
 
@@ -121,7 +121,7 @@ void stop_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_
     }
 
     if(recorder->state == NotRecording) {
-        g_print("Recorder is already unlinked - nothing to do here!\n");
+        // g_print("Recorder is already unlinked - nothing to do here!\n");
         return;
     }
 
