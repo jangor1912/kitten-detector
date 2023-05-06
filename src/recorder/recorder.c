@@ -98,7 +98,7 @@ void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder
         g_printerr("Cannot get source pad of recorder tee!\n");
         return;
     }
-    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_IDLE,
                        start_recording_probe_callback,
                        (gpointer) recorder->recorder_bin, NULL);
     g_print("Successfully added 'start_recording_probe_callback' to 'recorder_tee_src_pad'\n");
@@ -140,7 +140,7 @@ void stop_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_
         g_printerr("Cannot get source pad of recorder tee!\n");
         return;
     }
-    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+    gst_pad_add_probe (recorder_tee_src_pad, GST_PAD_PROBE_TYPE_IDLE,
                        stop_recording_probe_callback,
                        (gpointer) recorder->recorder_bin, NULL);
     g_print("Successfully added 'stop_recording_probe_callback' to 'recorder_tee_src_pad'\n");

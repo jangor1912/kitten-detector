@@ -17,7 +17,8 @@ GstPadProbeReturn stop_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    // g_print("Reached 'stop_recording_probe_callback'!\n");
+     g_print("Reached 'stop_recording_probe_callback'!\n");
+
     GstElement *recorder_bin = (GstElement*) u_data;
     if(recorder_bin == NULL){
         g_printerr("Recorder-bin is NULL! Exiting!\n");
@@ -51,6 +52,8 @@ GstPadProbeReturn stop_recording_probe_callback(
     gst_pad_unlink(recorder_tee_bin_src_pad,image_sink_bin_sink_pad);
     gst_element_send_event(image_sink_bin, gst_event_new_eos());
 
+    g_print("Successfully sent EOS to image_sink_bin!\n");
+
     return GST_PAD_PROBE_DROP;
 }
 
@@ -58,7 +61,7 @@ GstPadProbeReturn start_recording_probe_callback(
         GstPad *pad,
         GstPadProbeInfo *info,
         gpointer u_data){
-    // g_print("Reached 'start_recording_probe_callback'!\n");
+     g_print("Reached 'start_recording_probe_callback'!\n");
 
     GstElement *recorder_bin = (GstElement*) u_data;
     if(recorder_bin == NULL){
@@ -96,13 +99,28 @@ GstPadProbeReturn start_recording_probe_callback(
     }
 
     gchar *recorder_tee_stream_id = gst_pad_get_stream_id(recorder_tee_bin_src_pad);
+
+    if(recorder_tee_stream_id == NULL){
+        g_printerr("Cannot retrieve current stream-id from recorder-tee! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
     gchar *image_sink_stream_id = gst_pad_create_stream_id(
             image_sink_bin_sink_pad,
             recorder_tee,
             recorder_tee_stream_id);
+
+    if(image_sink_stream_id == NULL){
+        g_printerr("Cannot create stream-id for image-sink! Exiting!\n");
+        return GST_PAD_PROBE_DROP;
+    }
+
     gst_element_send_event(
             image_sink_bin,
             gst_event_new_stream_start(image_sink_stream_id));
+
+    g_print("Successfully sent `new_stream_start` event (with stream id = `%s`) to image_sink_bin!\n",
+            image_sink_stream_id);
 
     return GST_PAD_PROBE_DROP;
 }
