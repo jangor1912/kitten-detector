@@ -10,6 +10,7 @@
 
 #define RECORDING_BUFFER 2000000000  // 2s of buffer time
 #define RECORDER_TEE_NAME "recorder-tee"
+#define RECORDER_OUTPUT_SELECTOR_NAME "recorder-osel"
 
 GstElement *create_recorder_bin(guint sink_number){
     GstElement *bin = NULL;
@@ -20,11 +21,13 @@ GstElement *create_recorder_bin(guint sink_number){
 
     /* Create all file-sink elements */
     GstElement *pre_recorder_queue = gst_element_factory_make("queue", "pre-recorder-queue");
-    GstElement *recorder_tee = gst_element_factory_make("tee", RECORDER_TEE_NAME);
+    GstElement *recorder_osel = gst_element_factory_make (
+            "output-selector",
+            RECORDER_OUTPUT_SELECTOR_NAME);
     GstElement *image_sink_bin = create_image_sink_bin(0);
     GstElement *fake_sink_bin = create_fake_sink_bin(0);
 
-    if(!pre_recorder_queue || !recorder_tee || !image_sink_bin || !fake_sink_bin){
+    if(!pre_recorder_queue || !recorder_osel || !image_sink_bin || !fake_sink_bin){
         g_printerr("One of the elements of recorder-bin %d could not be created. Exiting!\n", sink_number);
         return NULL;
     }
@@ -32,23 +35,40 @@ GstElement *create_recorder_bin(guint sink_number){
     /* Add all elements to bin */
     gst_bin_add_many(GST_BIN(bin),
                      pre_recorder_queue,
-                     recorder_tee,
+                     recorder_osel,
                      image_sink_bin,
                      fake_sink_bin,
                      NULL);
 
+    g_object_set (G_OBJECT (recorder_osel), "resend-latest", TRUE, NULL);
+    g_object_set (G_OBJECT (image_sink_bin), "sync", FALSE, "async", FALSE, NULL);
+    g_object_set (G_OBJECT (fake_sink_bin), "sync", FALSE, "async", FALSE, NULL);
+
     /* Link all elements together */
     if (!gst_element_link_many(pre_recorder_queue,
-                               recorder_tee,
+                               recorder_osel,
                                NULL)) {
         g_printerr("Cannot link elements of %d recorder-bin. Exiting.\n", sink_number);
         return NULL;
     }
 
-    connect_two_elements(recorder_tee, fake_sink_bin,
-                         "sink", "src_0");
-    connect_two_elements(recorder_tee, image_sink_bin,
-                         "sink", "src_1");
+    GstPad *osel_src_pad_0 = gst_element_get_request_pad (recorder_osel, "src_0");
+    GstPad *fake_sink_bin_sink_pad = gst_element_get_static_pad(fake_sink_bin, "sink");
+    if (gst_pad_link (osel_src_pad_0, fake_sink_bin_sink_pad) != GST_PAD_LINK_OK) {
+        g_print ("Linking output-selector to fake-sink-bin has failed!\n");
+        return NULL;
+    }
+    gst_object_unref (fake_sink_bin_sink_pad);
+
+    GstPad *osel_src_pad_1 = gst_element_get_request_pad (recorder_osel, "src_1");
+    GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
+    if (gst_pad_link (osel_src_pad_1, image_sink_bin_sink_pad) != GST_PAD_LINK_OK) {
+        g_print ("Linking output-selector to image-sink-bin has failed!\n");
+        return NULL;
+    }
+    gst_object_unref (fake_sink_bin_sink_pad);
+
+
 
     /* set buffer on recorder-queue to record few seconds before and after `STOP-RECORDING` signal */
 //    g_object_set(G_OBJECT(pre_recorder_queue),
@@ -61,6 +81,80 @@ GstElement *create_recorder_bin(guint sink_number){
     add_ghost_sink_pad_to_bin(bin, pre_recorder_queue, "sink");
 
     return bin;
+}
+
+void switch_recorder_state_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {
+     g_print("Reached: 'switch_recorder_state_handler'\n");
+
+    Recorder *recorder = (Recorder*) recorder_data;
+
+    if(recorder == NULL){
+        g_printerr("Recorder is NULL in 'start_recording_handler'. Exiting!\n");
+        return;
+    }
+
+    if(recorder->recorder_bin == NULL){
+        g_printerr("Recorder-Bin is NULL in 'start_recording_handler'. Exiting!\n");
+        return;
+    }
+
+    gchar *previous_state = NULL;
+    gchar *current_state = NULL;
+
+    if(recorder->state == Recording) {
+        previous_state = "Recording";
+        recorder->state = NotRecording;
+        current_state = "NotRecording";
+    } else {
+        previous_state = "NotRecording";
+        recorder->state = Recording;
+        current_state = "Recording";
+    }
+
+    g_print("Successfully changed Recorder state from `%s` to `%s`!\n", previous_state, current_state);
+
+    GstElement *recorder_osel = gst_bin_get_by_name(
+            GST_BIN(recorder->recorder_bin),
+            RECORDER_OUTPUT_SELECTOR_NAME);
+    if(recorder_osel == NULL){
+        g_printerr("Cannot get 'recorder-output-selector' element from recorder-bin. Exiting!\n");
+        return;
+    }
+
+    GstPad *recorder_osel_src_0_pad = gst_element_get_static_pad(recorder_osel, "src_0");
+    if(!recorder_osel_src_0_pad){
+        g_printerr("Cannot get source-0 pad of recorder output-selector!\n");
+        return;
+    }
+
+    GstPad *recorder_osel_src_1_pad = gst_element_get_static_pad(recorder_osel, "src_1");
+    if(!recorder_osel_src_1_pad){
+        g_printerr("Cannot get source-1 pad of recorder output-selector!\n");
+        return;
+    }
+
+    GstPad *old_pad, *final_pad = NULL;
+    g_object_get (G_OBJECT (recorder_osel), "active-pad", &old_pad, NULL);
+    if(!old_pad){
+        g_printerr("Cannot get active source pad of recorder output-selector!\n");
+        return;
+    }
+
+    if(old_pad == recorder_osel_src_0_pad){
+        final_pad = recorder_osel_src_1_pad;
+    } else {
+        final_pad = recorder_osel_src_0_pad;
+    }
+
+    g_object_set (G_OBJECT (recorder_osel), "active-pad", final_pad, NULL);
+
+    g_print ("Switched from %s:%s to %s:%s\n",
+             GST_DEBUG_PAD_NAME(old_pad),
+             GST_DEBUG_PAD_NAME (final_pad));
+
+    gst_object_unref (old_pad);
+
+    g_print("Successfully completed `switch_recorder_state_handler`!\n");
 }
 
 void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data) {

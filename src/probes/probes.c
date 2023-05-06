@@ -393,12 +393,18 @@ GstPadProbeReturn recorder_manager_buffer_probe(GstPad * pad, GstPadProbeInfo * 
         Recorder *recorder = pipeline_data->sources[source_number]->recorder;
 
         if(person_found){
-            // g_print("Person was found - starting recording!\n");
-            g_signal_emit_by_name(recorder->recorder_bin, "start-recording", NULL);
+             g_print("Person was found - starting recording!\n");
+            if(recorder->state == NotRecording){
+                g_signal_emit_by_name(recorder->recorder_bin, "switch-recorder-state", NULL);
+            }
         } else {
-            // g_print("Person wasn't found - stopping recording!\n");
-            g_signal_emit_by_name(recorder->recorder_bin, "stop-recording", NULL);
+             g_print("Person wasn't found - stopping recording!\n");
+            if(recorder->state == Recording){
+                g_signal_emit_by_name(recorder->recorder_bin, "switch-recorder-state", NULL);
+            }
         }
+
+        g_print("Completed emitting signals in recording-manager for source %d!\n", source_number);
 
         source_number++;
     }

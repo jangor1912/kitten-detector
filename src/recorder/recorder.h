@@ -13,5 +13,6 @@
 GstElement *create_recorder_bin(guint sink_number);
 void stop_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data);
 void start_recording_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data);
+void switch_recorder_state_handler(GstElement *src, GstPad *new_pad, gpointer recorder_data);
 
 #endif //KITTEN_DETECTOR_RECORDER_H

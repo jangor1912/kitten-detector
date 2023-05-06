@@ -148,6 +148,7 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
             recorder->state = Recording;
 
             /* Register the "start-recording" and "stop-recording" signals on the pipeline */
+            /*
             g_signal_new("start-recording", G_TYPE_FROM_INSTANCE(recorder_bin),
                          G_SIGNAL_RUN_LAST, 0,
                          NULL, NULL,
@@ -160,6 +161,17 @@ int run_pipeline(SourcesConfig *sources_config, StreamMuxerConfig *streammux_con
 
             g_signal_connect(recorder_bin, "stop-recording", G_CALLBACK (stop_recording_handler), (gpointer) recorder);
             g_signal_connect(recorder_bin, "start-recording", G_CALLBACK (start_recording_handler), (gpointer) recorder);
+            */
+
+            /* Register the "switch-recorder-state" signal on the pipeline */
+            g_signal_new("switch-recorder-state", G_TYPE_FROM_INSTANCE(recorder_bin),
+                         G_SIGNAL_RUN_LAST, 0,
+                         NULL, NULL,
+                         NULL, G_TYPE_NONE, 0);
+            g_print("Successfully registered 'switch-recorder-state' signals for %d source.\n", i);
+            g_signal_connect(recorder_bin, "switch-recorder-state",
+                             G_CALLBACK (switch_recorder_state_handler),
+                             (gpointer) recorder);
 
             gst_bin_add(GST_BIN(pipeline_data->pipeline), recorder_bin);
 
