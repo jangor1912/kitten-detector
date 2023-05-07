@@ -220,6 +220,8 @@ GstElement *create_image_sink_bin(guint sink_number){
     g_object_set(G_OBJECT(file_sink),
                  "location", output_file_format,
                  NULL);
+    /* https://stackoverflow.com/questions/15999018/gstreamer-output-selector-does-not-allow-saving-to-file */
+    g_object_set (G_OBJECT (file_sink), "sync", FALSE, "async", FALSE, NULL);
     GstCaps *caps = gst_caps_new_simple(
             "video/x-raw",
             "format", G_TYPE_STRING, "I420",
@@ -283,6 +285,8 @@ GstElement *create_fake_sink_bin(guint sink_number){
         g_printerr("Cannot link elements of %d fake-sink-bin. Exiting.\n", sink_number);
         return NULL;
     }
+
+    g_object_set (G_OBJECT (fake_sink), "sync", FALSE, "async", FALSE, NULL);
 
     add_ghost_sink_pad_to_bin(bin, before_sink_queue, "sink");
 

@@ -60,15 +60,16 @@ GstElement *create_recorder_bin(guint sink_number){
     }
     gst_object_unref (fake_sink_bin_sink_pad);
 
-    GstPad *osel_src_pad_1 = gst_element_get_request_pad (recorder_osel, "src_1");
+    GstPad *osel_src_pad_1 = gst_element_get_request_pad(recorder_osel, "src_0");
     GstPad *image_sink_bin_sink_pad = gst_element_get_static_pad(image_sink_bin, "sink");
     if (gst_pad_link (osel_src_pad_1, image_sink_bin_sink_pad) != GST_PAD_LINK_OK) {
         g_print ("Linking output-selector to image-sink-bin has failed!\n");
         return NULL;
     }
-    gst_object_unref (fake_sink_bin_sink_pad);
+    gst_object_unref (image_sink_bin_sink_pad);
 
-
+    /* Set active pad */
+    g_object_set (G_OBJECT (recorder_osel), "active-pad", osel_src_pad_1, NULL);
 
     /* set buffer on recorder-queue to record few seconds before and after `STOP-RECORDING` signal */
 //    g_object_set(G_OBJECT(pre_recorder_queue),
